@@ -28,30 +28,31 @@ from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
 from OCC.Core.TopoDS import TopoDS_Solid, TopoDS_Compound, TopoDS_Shell
 
 import xlsxwriter
-from step_parse_5_7 import StepParse, remove_suffixes
+from step_parse_6_1 import StepParse, remove_suffixes
+from part_compare import PartCompare
 
-''' -------------------------------------------------------------- '''
-''' Import all partfind stuff from TH
-    For now, just sets/resets cwd and grabs code from scripts '''
+# ''' -------------------------------------------------------------- '''
+# ''' Import all partfind stuff from TH
+#     For now, just sets/resets cwd and grabs code from scripts '''
 
-# partfind_folder = "C:\_Work\_DCS project\__ALL CODE\_Repos\partfind\partfind for git"
-partfind_folder = "C:\\Users\\prehr\\OneDrive - University of Leeds\\__WORK SYNCED\\_Work\\_DCS project\\__ALL CODE\\_Repos\\partfind\\partfind for git"
-# sys.path.append(partfind_folder)
+# # partfind_folder = "C:\_Work\_DCS project\__ALL CODE\_Repos\partfind\partfind for git"
+# partfind_folder = "C:\\Users\\prehr\\OneDrive - University of Leeds\\__WORK SYNCED\\_Work\\_DCS project\\__ALL CODE\\_Repos\\partfind\\partfind for git"
+# # sys.path.append(partfind_folder)
 
-cwd_old = os.getcwd()
-os.chdir(partfind_folder)
+# cwd_old = os.getcwd()
+# os.chdir(partfind_folder)
 
-import dgl
-from partfind_search_gui import networkx_to_dgl
-from partgnn import PartGNN
-from main import parameter_parser
-from step_to_graph import StepToGraph
+# import dgl
+# from partfind_search_gui import networkx_to_dgl
+# from partgnn import PartGNN
+# from main import parameter_parser
+# from step_to_graph import StepToGraph
 
-from utils import graphlet_pair_compare
+# from utils import graphlet_pair_compare
 
-''' Restore previous cwd '''
-os.chdir(cwd_old)
-''' -------------------------------------------------------------- '''
+# ''' Restore previous cwd '''
+# os.chdir(cwd_old)
+# ''' -------------------------------------------------------------- '''
 
 
 
@@ -149,6 +150,7 @@ def scores_to_excel(step_folder, path = None, default_value = -1, suffixes = ('s
         To add BoM info to Excel output; must load original STEP file
         and get number of instances of all items '''
     sp = StepParse()
+
     for suffix in suffixes:
         filename = step_folder + '.' + suffix
         loaded = False
@@ -372,207 +374,210 @@ def scores_to_excel(step_folder, path = None, default_value = -1, suffixes = ('s
 
 
 
-''' To combine all similarity calculation functionality in single class for ease '''
-class PartCompare():
+# ''' To combine all similarity calculation functionality in single class for ease '''
+# class PartCompare():
 
-    def __init__(self):
+#     def __init__(self):
 
-        ''' 1. Change to partfind directory '''
-        cwd_old = os.getcwd()
-        os.chdir(partfind_folder)
+#         ''' 1. Change to partfind directory '''
+#         cwd_old = os.getcwd()
+#         os.chdir(partfind_folder)
 
-        ''' 2. Initialise ML model '''
-        args = parameter_parser()
-        # self.model = PartGNN(args, save_folder = os.path.join(partfind_folder, "./trained_models/"))
-        self.model = PartGNN(args)
-        self.model.load_model()
+#         ''' 2. Initialise ML model '''
+#         args = parameter_parser()
+#         # self.model = PartGNN(args, save_folder = os.path.join(partfind_folder, "./trained_models/"))
+#         self.model = PartGNN(args)
+#         self.model.load_model()
 
-        ''' 3. Change back to previous directory '''
-        os.chdir(cwd_old)
+#         ''' 3. Change back to previous directory '''
+#         os.chdir(cwd_old)
 
-        # if not step_folder:
-        #     # step_folder = "C:\_Work\_DCS project\__ALL CODE\_Repos\StrEmbed-5-6\StrEmbed-5-6 for git\gears"
-        #     # step_folder = "C:\\_Work\\_DCS project\\__ALL CODE\\_Repos\StrEmbed-5-6\\StrEmbed-5-6 for git\\assorted"
-        #     # step_folder = "C:\\_Work\\_DCS project\\__ALL CODE\\_Repos\\StrEmbed-5-6\\StrEmbed-5-6 for git\\Torch Assembly"
-        #     step_folder = "C:\\_Work\\_DCS project\\__ALL CODE\\_Repos\\StrEmbed-5-6\\StrEmbed-5-6 for git\\cakestep"
-        #     # step_folder = "C:\\_Work\\_DCS project\\__ALL CODE\\_Repos\\StrEmbed-5-6\\StrEmbed-5-6 for git\\77170325_1"
-        # self.step_folder = step_folder
-
-
-
-    ''' Adapted from TH's "partfind_search_gui_hr" (deleted, now part of "partfind_search_gui") and "step_to_graph"
-        Minimal code to get graphs of parts '''
-    def load_from_step(self, step_file):
-        s_load = StepToGraph(step_file)
-        g_load = networkx_to_dgl(s_load.H)
-        face_g = g_load.node_type_subgraph(['face'])
-        g_out = dgl.to_homogeneous(face_g)
-        return g_out
+#         # if not step_folder:
+#         #     # step_folder = "C:\_Work\_DCS project\__ALL CODE\_Repos\StrEmbed-5-6\StrEmbed-5-6 for git\gears"
+#         #     # step_folder = "C:\\_Work\\_DCS project\\__ALL CODE\\_Repos\StrEmbed-5-6\\StrEmbed-5-6 for git\\assorted"
+#         #     # step_folder = "C:\\_Work\\_DCS project\\__ALL CODE\\_Repos\\StrEmbed-5-6\\StrEmbed-5-6 for git\\Torch Assembly"
+#         #     step_folder = "C:\\_Work\\_DCS project\\__ALL CODE\\_Repos\\StrEmbed-5-6\\StrEmbed-5-6 for git\\cakestep"
+#         #     # step_folder = "C:\\_Work\\_DCS project\\__ALL CODE\\_Repos\\StrEmbed-5-6\\StrEmbed-5-6 for git\\77170325_1"
+#         # self.step_folder = step_folder
 
 
 
-    ''' HR June 21 Unused method for computation of similarities for arbitrary pair of STEP files
-        Keep as might be useful '''
-    # ''' Adapted from old "graph_compare" script
-    #     Takes two STEP files (full path) and returns BB, ML and GR similarities '''
-    # def simple_sims(self, f1, f2):
-
-    #     sh1 = list(dex.read_step_file_with_names_colors(f1))[0]
-    #     sh2 = list(dex.read_step_file_with_names_colors(f2))[0]
-
-    #     ar1 = get_aspect_ratios(sh1)
-    #     ar2 = get_aspect_ratios(sh2)
-
-    #     g1 = self.load_from_step(f1)
-    #     g2 = self.load_from_step(f2)
-
-    #     score_bb = get_bb_score(ar1,ar2)
-    #     score_ml = self.model.test_pair(g1,g2)
-    #     score_gr = graphlet_pair_compare(g1,g2)
-
-    #     print('ML score: ', score_ml)
-    #     print('GR score: ', score_gr)
-
-    #     return score_bb, score_ml, score_gr
+#     ''' Adapted from TH's "partfind_search_gui_hr" (deleted, now part of "partfind_search_gui") and "step_to_graph"
+#         Minimal code to get graphs of parts '''
+#     def load_from_step(self, step_file):
+#         s_load = StepToGraph(step_file)
+#         g_load = networkx_to_dgl(s_load.H)
+#         face_g = g_load.node_type_subgraph(['face'])
+#         g_out = dgl.to_homogeneous(face_g)
+#         return g_out
 
 
 
-    def do_all_sims(self, step_folder):
+#     ''' HR June 21 Unused method for computation of similarities for arbitrary pair of STEP files
+#         Keep as might be useful '''
+#     # ''' Adapted from old "graph_compare" script
+#     #     Takes two STEP files (full path) and returns BB, ML and GR similarities '''
+#     # def simple_sims(self, f1, f2):
 
-        if not os.path.isdir(step_folder):
-            print('Folder not found; aborting...')
-            return
+#     #     sh1 = list(dex.read_step_file_with_names_colors(f1))[0]
+#     #     sh2 = list(dex.read_step_file_with_names_colors(f2))[0]
 
-        files = [file for file in os.listdir(step_folder) if file.endswith('STEP')]
-        if not files:
-            print('No STEP files found in folder ', step_folder, '; aborting...')
-            return
+#     #     ar1 = get_aspect_ratios(sh1)
+#     #     ar2 = get_aspect_ratios(sh2)
 
-        ''' Populate file dicts '''
-        shape_dict = {file:list(dex.read_step_file_with_names_colors(os.path.join(step_folder, file)))[0] for file in files}
+#     #     g1 = self.load_from_step(f1)
+#     #     g2 = self.load_from_step(f2)
 
-        graph_dict = {}
-        for file in files:
+#     #     score_bb = get_bb_score(ar1,ar2)
+#     #     score_ml = self.model.test_pair(g1,g2)
+#     #     score_gr = graphlet_pair_compare(g1,g2)
+
+#     #     print('ML score: ', score_ml)
+#     #     print('GR score: ', score_gr)
+
+#     #     return score_bb, score_ml, score_gr
+
+
+''' HR 28/10/21 From PartCompare but needs to go here '''
+def do_all_sims(self, step_folder):
+
+    ''' HR 28/10/21 Initialise PartCompare here '''
+    pc = PartCompare()
+
+    if not os.path.isdir(step_folder):
+        print('Folder not found; aborting...')
+        return
+
+    files = [file for file in os.listdir(step_folder) if file.endswith('STEP')]
+    if not files:
+        print('No STEP files found in folder ', step_folder, '; aborting...')
+        return
+
+    ''' Populate file dicts '''
+    shape_dict = {file:list(dex.read_step_file_with_names_colors(os.path.join(step_folder, file)))[0] for file in files}
+
+    graph_dict = {}
+    for file in files:
+        try:
+            print('\nCreating graph for file ', file)
+            graph_dict[file] = self.load_from_step(os.path.join(step_folder, file))
+            print('Graph created ', file)
+        except:
+            graph_dict[file] = None
+            print('\nCould not create graph for ', file)
+
+    print('Done all graphs')
+
+    ar_dict = {}
+    for file in files:
+        ar_dict[file] = get_aspect_ratios(shape_dict[file])
+    print('Got aspect ratios')
+
+
+
+    try:
+        scores_bb_loaded = load_from_txt(os.path.join(step_folder, 'scores_bb.txt'))
+    except:
+        scores_bb_loaded = {}
+    print('BB load done')
+
+    try:
+        scores_loaded = load_from_txt(os.path.join(step_folder, 'scores.txt'))
+    except:
+        scores_loaded = {}
+    print('ML load done')
+
+    try:
+        scores_graphlet_loaded = load_from_txt(os.path.join(step_folder, 'scores_graphlet.txt'))
+    except:
+        scores_graphlet_loaded = {}
+    print('GR load done')
+
+    # self.loaded = [scores_bb_loaded, scores_loaded, scores_graphlet_loaded]
+
+    default_value = -1
+    buffer_size = 10
+
+    done = []
+    scores = {}
+    scores_graphlet = {}
+    scores_bb = {}
+
+
+
+    count = 0
+
+    for file in files:
+        try:
+            # g1 = load_from_step(os.path.join(step_folder, file))
+            g1 = graph_dict[file]
+        except:
+            g1 = None
+
+        ''' Get OCC shape 1 '''
+        # sh1 = dex.read_step_file_with_names_colors(os.path.join(step_folder, file))
+        # sh1 = list(sh1)[0]
+        # sh1 = shape_dict[file]
+        ar1 = ar_dict[file]
+
+        to_do = [el for el in files if el not in done]
+        for file2 in to_do:
             try:
-                print('\nCreating graph for file ', file)
-                graph_dict[file] = self.load_from_step(os.path.join(step_folder, file))
-                print('Graph created ', file)
+                # g2 = load_from_step(os.path.join(step_folder, file2))
+                g2 = graph_dict[file2]
             except:
-                graph_dict[file] = None
-                print('\nCould not create graph for ', file)
+                g2 = None
 
-        print('Done all graphs')
+            ''' Get OCC shape 2 '''
+            # sh2 = dex.read_step_file_with_names_colors(os.path.join(step_folder, file2))
+            # sh2 = list(sh2)[0]
+            # sh2 = shape_dict[file2]
+            ar2 = ar_dict[file2]
 
-        ar_dict = {}
-        for file in files:
-            ar_dict[file] = get_aspect_ratios(shape_dict[file])
-        print('Got aspect ratios')
-
-
-
-        try:
-            scores_bb_loaded = load_from_txt(os.path.join(step_folder, 'scores_bb.txt'))
-        except:
-            scores_bb_loaded = {}
-        print('BB load done')
-
-        try:
-            scores_loaded = load_from_txt(os.path.join(step_folder, 'scores.txt'))
-        except:
-            scores_loaded = {}
-        print('ML load done')
-
-        try:
-            scores_graphlet_loaded = load_from_txt(os.path.join(step_folder, 'scores_graphlet.txt'))
-        except:
-            scores_graphlet_loaded = {}
-        print('GR load done')
-
-        # self.loaded = [scores_bb_loaded, scores_loaded, scores_graphlet_loaded]
-
-        default_value = -1
-        buffer_size = 10
-
-        done = []
-        scores = {}
-        scores_graphlet = {}
-        scores_bb = {}
-
-
-
-        count = 0
-
-        for file in files:
-            try:
-                # g1 = load_from_step(os.path.join(step_folder, file))
-                g1 = graph_dict[file]
-            except:
-                g1 = None
-
-            ''' Get OCC shape 1 '''
-            # sh1 = dex.read_step_file_with_names_colors(os.path.join(step_folder, file))
-            # sh1 = list(sh1)[0]
-            # sh1 = shape_dict[file]
-            ar1 = ar_dict[file]
-
-            to_do = [el for el in files if el not in done]
-            for file2 in to_do:
+            if (file,file2) in scores_loaded:
+                print('Score ML found')
+                scores[(file,file2)] = scores_loaded[(file,file2)]
+            else:
+                print('Score ML not found; calculating...')
                 try:
-                    # g2 = load_from_step(os.path.join(step_folder, file2))
-                    g2 = graph_dict[file2]
+                    scores[(file,file2)] = self.model.test_pair(g1,g2)
+                except Exception as e:
+                    print(e)
+                    scores[(file,file2)] = default_value
+
+            if (file,file2) in scores_graphlet_loaded:
+                print('Score GR found')
+                scores_graphlet[(file,file2)] = scores_graphlet_loaded[(file,file2)]
+            else:
+                print('Score GR not found; calculating...')
+                try:
+                    # score = graphlet_pair_compare(g1,g2)
+                    scores_graphlet[(file,file2)] = pc.gpc(g1, g2)
+                except Exception as e:
+                    print(e)
+                    scores_graphlet[(file,file2)] = default_value
+
+            if (file,file2) in scores_bb_loaded:
+                print('Score BB found')
+                scores_bb[(file,file2)] = scores_bb_loaded[(file,file2)]
+            else:
+                print('Score BB not found; calculating...')
+                try:
+                    scores_bb[(file,file2)] = get_bb_score(ar1,ar2)
                 except:
-                    g2 = None
+                    scores_bb[(file,file2)] = default_value
 
-                ''' Get OCC shape 2 '''
-                # sh2 = dex.read_step_file_with_names_colors(os.path.join(step_folder, file2))
-                # sh2 = list(sh2)[0]
-                # sh2 = shape_dict[file2]
-                ar2 = ar_dict[file2]
+            count += 1
+            print('Count = ', count)
 
-                if (file,file2) in scores_loaded:
-                    print('Score ML found')
-                    scores[(file,file2)] = scores_loaded[(file,file2)]
-                else:
-                    print('Score ML not found; calculating...')
-                    try:
-                        scores[(file,file2)] = self.model.test_pair(g1,g2)
-                    except Exception as e:
-                        print(e)
-                        scores[(file,file2)] = default_value
+            ''' Save if buffer limit reached '''
+            if (count % buffer_size == 0) or (file2 == to_do[-1]):
+                print('Saving buffer...')
+                save_to_txt(scores, os.path.join(step_folder, 'scores.txt'))
+                save_to_txt(scores_graphlet, os.path.join(step_folder, 'scores_graphlet.txt'))
+                save_to_txt(scores_bb, os.path.join(step_folder, 'scores_bb.txt'))
 
-                if (file,file2) in scores_graphlet_loaded:
-                    print('Score GR found')
-                    scores_graphlet[(file,file2)] = scores_graphlet_loaded[(file,file2)]
-                else:
-                    print('Score GR not found; calculating...')
-                    try:
-                        # score = graphlet_pair_compare(g1,g2)
-                        scores_graphlet[(file,file2)] = graphlet_pair_compare(g1,g2)
-                    except Exception as e:
-                        print(e)
-                        scores_graphlet[(file,file2)] = default_value
-
-                if (file,file2) in scores_bb_loaded:
-                    print('Score BB found')
-                    scores_bb[(file,file2)] = scores_bb_loaded[(file,file2)]
-                else:
-                    print('Score BB not found; calculating...')
-                    try:
-                        scores_bb[(file,file2)] = get_bb_score(ar1,ar2)
-                    except:
-                        scores_bb[(file,file2)] = default_value
-
-                count += 1
-                print('Count = ', count)
-
-                ''' Save if buffer limit reached '''
-                if (count % buffer_size == 0) or (file2 == to_do[-1]):
-                    print('Saving buffer...')
-                    save_to_txt(scores, os.path.join(step_folder, 'scores.txt'))
-                    save_to_txt(scores_graphlet, os.path.join(step_folder, 'scores_graphlet.txt'))
-                    save_to_txt(scores_bb, os.path.join(step_folder, 'scores_bb.txt'))
-
-            done.append(file)
+        done.append(file)
 
 
 
