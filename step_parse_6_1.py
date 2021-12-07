@@ -202,7 +202,7 @@ class AssemblyManager():
         # self.new_assembly_text = 'Unnamed item'
         # self.new_part_text     = 'Unnamed item'
 
-        self.ENFORCE_BINARY_DEFAULT = True
+        self.ENFORCE_BINARY_DEFAULT = False
         self.DO_ALL_LATTICE_LINES = True
 
         '''
@@ -329,6 +329,7 @@ class AssemblyManager():
             print('Edge already exists; adding entry')
         else:
             print('Edge does not exist in lattice; creating new edge and entry')
+            print(' ', _um,_vm)
             self._lattice.add_edge(_um,_vm)
         self._lattice.edges[(_um,_vm)].update({_id:(u,v)})
 
@@ -417,6 +418,7 @@ class AssemblyManager():
             self.move_node_in_lattice(_id, _child, _parent)
 
         ''' Finally, remove redundant node '''
+        print('  Removing node in lattice in "enforce_binary"')
         self.remove_node_in_lattice(_id, _node)
 
 
@@ -529,6 +531,11 @@ class AssemblyManager():
         ''' Move all selected items to be children of new node '''
         for _node in _nodes:
             self.move_node_in_lattice(_id, _node, new_sub)
+
+        # ''' HR 03/12/21 To try and resolve wrong node positioning '''
+        # _ass.remove_redundants()
+        # if not new_sub in _ass.nodes:
+        #     new_sub = None
 
         return new_sub
 
@@ -1427,7 +1434,7 @@ class AssemblyManager():
         else:
             lines = latt.S_p
 
-        for k,v in latt.S_p.items():
+        for k,v in lines.items():
             if v <= 1:
                 line_pos = 0
             else:
@@ -1463,10 +1470,13 @@ class AssemblyManager():
 
         print('Running "update_colours_selected"')
         print('Called by: ', called_by)
+        
+        latt = self._lattice
+        leaves = latt.leaves
 
         ''' Get active elements '''
-        active_nodes = [node for node in self._lattice.nodes if active in self._lattice.nodes[node]]
-        active_edges = [edge for edge in self._lattice.edges if active in self._lattice.edges[edge]]
+        active_nodes = [node for node in latt.nodes if active in latt.nodes[node]]
+        active_edges = [edge for edge in latt.edges if active in latt.edges[edge]]
         print('Active nodes: ', active_nodes)
         print('Active edges: ', active_edges)
 
@@ -1480,8 +1490,8 @@ class AssemblyManager():
             # to_unselect = [self.get_master_node(active, node) for node in to_unselect if active in self._lattice.nodes[node]]
             to_unselect = [self.get_master_node(active, node) for node in to_unselect]
         else:
-            to_unselect = [node for node in self._lattice.nodes if node not in to_select]
-        to_unselect = [node for node in to_unselect if active in self._lattice.nodes[node]]
+            to_unselect = [node for node in latt.nodes if node not in to_select]
+        to_unselect = [node for node in to_unselect if active in latt.nodes[node]]
 
         print('selected: ', selected)
         print('to_select: ', to_select)
@@ -1489,9 +1499,6 @@ class AssemblyManager():
 
         dc = self.dc
         sc = self.sc
-
-        latt = self._lattice
-        leaves = latt.leaves
 
         ''' Selections '''
         for node in to_select:
@@ -1511,17 +1518,9 @@ class AssemblyManager():
             latt.node_dict[node].set_facecolor(dc)
             ''' Edges '''
             for u,v in latt.in_edges(node):
-                # if (u in selected) or (u in to_select):
-                # if ((u in selected) or (u in to_select)) and (u,v) in active_edges:
-                # if (u in to_unselect):
-                # if (u not in selected) or (u not in to_select):
                 if ((u not in selected) or (u not in to_select)) and (u,v) in active_edges:
                     latt.edge_dict[(u,v)].set_color(dc)
             for u,v in latt.out_edges(node):
-                # if (u in selected) or (u in to_select):
-                # if ((v in selected) or (v in to_select)) and (u,v) in active_edges:
-                # if (v in to_unselect):
-                # if (v not in selected) or (v not in to_select):
                 if ((v not in selected) or (v not in to_select)) and (u,v) in active_edges:
                     latt.edge_dict[(u,v)].set_color(dc)
 
@@ -1584,11 +1583,11 @@ class AssemblyManager():
             # Activate
             if any(el in to_activate for el in _dict):
                 latt.edge_dict[(leaf,None)].set_color(dc)
-                print('Activating leaf edge; node dict: ', _dict)
+                # print('Activating leaf edge; node dict: ', _dict)
             # Deactivate
             elif any(el in to_deactivate for el in _dict):
                 latt.edge_dict[(leaf,None)].set_color(ic)
-                print('Deactivating leaf edge; node dict: ', _dict)
+                # print('Deactivating leaf edge; node dict: ', _dict)
 
 
 
@@ -1720,6 +1719,9 @@ class StepParse(nx.DiGraph):
         self.PARTFIND_FOLDER_DEFAULT = "C:\_Work\_DCS project\__ALL CODE\_Repos\partfind\partfind for git"
 
         self.node_dict = {}
+        self.file_loaded = False
+
+
 
     @property
     def new_node_id(self):
@@ -1810,6 +1812,7 @@ class StepParse(nx.DiGraph):
 
         self.name_root_counter[nm_root] += 1
 
+        print(' Returning screen name: ', nm_full)
         return nm_full
 
 
@@ -1821,22 +1824,27 @@ class StepParse(nx.DiGraph):
         def get_product_name(line):
             ''' First strip off basic extraneous stuff; this should work universally '''
             line_corr = line.split("PRODUCT")[1].strip().rstrip(";").lstrip("(").strip().split("#")[0].strip().rstrip("(").strip().strip(",").strip()
+            print('Stripped back text, first stage: ', line_corr)
             ''' Next, deal with remaining rightmost field
-                Fine for all case studies so far, but might not be universal solution; would need to deal with text in field, if present
-                Note: Currently yields wrong name if text present in rightmost field '''
-            line_corr = line_corr.rstrip("'").strip().rstrip("'").strip().rstrip(",")
-            # print('Stripped back text: ', line_corr)
+            #     Fine for all case studies so far, but might not be universal solution; would need to deal with text in field, if present
+            #     Note: Currently yields wrong name if text present in rightmost field '''
+            # line_corr = line_corr.rstrip("'").strip().rstrip("'").strip().rstrip(",")
+            ''' HR 22/11/21
+                Rewritten to allow for text in third field
+                Still assumes no commas in third field, but improvement on previous '''
+            line_corr = ','.join(line_corr.split(",")[:-1])
+            print('Stripped back text, second stage: ', line_corr)
 
             chunks = line_corr.split(",")
-            # print('Chunks by comma: ', chunks)
+            print('Chunks by comma: ', chunks)
 
             l = len(chunks)
-            # print('Length: ', l)
+            print('Length: ', l)
 
             if l == 2:
                 ''' If only two chunks, first chunk must be name, even if two empty chunks '''
                 name = chunks[0]
-                # print("Length = 2, name is first chunk: ", name)
+                print("Length = 2, name is first chunk: ", name)
 
             else:
                 if (l % 2) != 0:
@@ -1850,16 +1858,16 @@ class StepParse(nx.DiGraph):
                     ''' Chop text into two halves '''
                     half1 = ','.join(chunks[0:lh]).strip()
                     half2 = ','.join(chunks[lh:]).strip()
-                    # print('Half 1: ', half1)
-                    # print('Half 2: ', half2)
+                    print('Half 1: ', half1)
+                    print('Half 2: ', half2)
                     if half1 == half2:
                         ''' Outcome 1: Both halves the same, i.e. name repeated in two fields '''
                         name = half1
-                        # print("Length > 2 and even and halves match, name is first half: ", name)
+                        print("Length > 2 and even and halves match, name is first half: ", name)
                     else:
                         ''' Outcome 2: Second field empty => name is all chunks except last '''
                         name = ','.join(chunks[:-1])
-                        # print("Length > 2 and even and halves do NOT match, name is all chunks except last: ", name)
+                        print("Length > 2 and even and halves do NOT match, name is all chunks except last: ", name)
 
             ''' HR 01/11/21 Workaround for problem of multiple apostropges being reduced to single one in OCC
                 Address unresolved OCC bug 32421: https://tracker.dev.opencascade.org/view.php?id=32421
@@ -1948,6 +1956,7 @@ class StepParse(nx.DiGraph):
 
         ''' Create graph structure for shape data '''
         head = self.new_node_id
+        self.head = head
         self.add_node(head)
         self.nodes[head]['occ_label'] = None
         self.nodes[head]['occ_name'] = None
@@ -2174,6 +2183,7 @@ class StepParse(nx.DiGraph):
         # return output_shapes
 
         self.remove_redundants()
+        self.file_loaded = True
 
 
 
@@ -2330,7 +2340,13 @@ class StepParse(nx.DiGraph):
     @property
     def leaves(self):
         ''' Get leaf nodes '''
-        leaves = {el for el in self.nodes if self.out_degree(el) == 0}
+        leaves = {node for node in self.nodes if self.out_degree(node) == 0}
+        # print('Leaves and names for assembly ID :', self.assembly_id, '')
+        # for leaf in leaves:
+        #     try:
+        #         print(' NODE: ', leaf, ', NAME: ', self.nodes[leaf]['screen_name'], '\n')
+        #     except:
+        #         print(' no name\n')
         return leaves
 
 
@@ -2398,11 +2414,17 @@ class StepParse(nx.DiGraph):
 
         ''' If no nodes passed, default to all nodes in assembly '''
         if not _nodes:
-            _nodes = self.nodes
+            _nodes = set(self.nodes)
+        ''' HR 03/12/21 Workaround to remove (redundant) head node '''
+        try:
+            _nodes = _nodes - {self.head}
+            print('Removed head node')
+        except:
+            print('Could not remove head node: not present')
 
-        ''' Convert to list if only one item '''
-        if type(_nodes) == int:
-            _nodes = [_nodes]
+        # ''' Convert to list if only one item '''
+        # if type(_nodes) == int:
+        #     _nodes = [_nodes]
 
         ''' Get parts in each node '''
         parts_in = self.get_leaves_in(_nodes)
@@ -2415,6 +2437,7 @@ class StepParse(nx.DiGraph):
         ''' Get number of possible combinations for each level... '''
         leaves = self.leaves
         n = len(leaves)
+        print('\n    Number of leaves: ', n,'\n')
         ''' ...but only needed for specified nodes '''
         ''' HR 28/10/21 To add option to display all lines, not just populated ones '''
         self.S_p_all = {level:self.get_comb(n,level) for level in range(int(n+1))}

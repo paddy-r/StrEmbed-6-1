@@ -41,12 +41,16 @@ Version 5.5
 Version 5.6 '''
 
 ''' HR 07/07/21
-Version 5.7 '''
+Version 5.7
+Abandoned '''
 
 ''' HR 05/10/21
 Version 6.1
 Copy of 5.7, to draw line under version 5
-Version 6 to include major upgrade of BoM reconciliation functionality '''
+Version 6 to include major upgrade of BoM reconciliation functionality
+and bug fixes:
+    1. GUI changes being executed multiple times
+    2. Node positioning error after change in graph structure '''
 
 
 
@@ -102,7 +106,7 @@ import images
 from OCC.Display import OCCViewer
 from OCC.Display import wxDisplay
 from OCC.Core.Quantity import (Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB)
-from OCC.Core.AIS import AIS_Shaded, AIS_WireFrame
+# from OCC.Core.AIS import AIS_Shaded, AIS_WireFrame
 
 
 
@@ -210,12 +214,11 @@ class MyTree(ctc.CustomTreeCtrl):
 
 
 
-
 ''' HR 26/05/21
     New class with overridden constructor to reduce code here
     Only differences are:
         (1) Don't bind EVT_LEFT_UP as that is bound later, and
-        (2) Apply style to panel 
+        (2) Apply style to panel
     Some code duplication from Pythonocc here:
     https://github.com/tpaviot/pythonocc-core '''
 class MyBaseViewer(wxDisplay.wxBaseViewer):
@@ -461,13 +464,15 @@ class MainWindow(wx.Frame):
         self._border = 1
         self._default_size = (30,30)
         self._button_size = (50,50)
-        self.veto = False
-        self.parts_list_done = False
+
+        ''' HR 25/11/21 New flags to prevent multiple event execution '''
+        self.VETO_PARTS = False
+        self.VETO_SELECTOR = False
 
         self._highlight_colour = wx.RED
         self.LATTICE_PLOT_MODE_DEFAULT = True
         self.COMMON_SELECTOR_VIEW = True
-        self.SELECT_ALL_DESCENDANTS = True
+        self.SELECT_ALL_CHILDREN = False
 
         self.origin = (0,0)
         self.click_pos = None
@@ -1143,10 +1148,69 @@ class MainWindow(wx.Frame):
         if not _shapes:
             return
 
-        selected = self.selected_items
+        # selected = self.selected_items
+
+        # ''' Get IDs of 3D shapes '''
+        # to_select = []
+        # print('IDs of item(s) selected:')
+        # for shape in _shapes:
+        #     ''' Inverse dict look-up '''
+        #     # item = [k for k,v in self.assembly.OCC_dict.items() if v == shape][-1]
+        #     ''' HR 19/05/12 New version to look in node dicts for shape '''
+        #     # item = [node for node in self.assembly.nodes if self.assembly.nodes[node]['shape_loc'][0] == shape][-1]
+        #     ''' HR 05/11/21 Updated to account for empty shape field (e.g. for user-created sub-assemblies) '''
+        #     item = [node for node in self.assembly.nodes if 'shape_loc' in self.assembly.nodes[node] and self.assembly.nodes[node]['shape_loc'][0] == shape][-1]
+        #     to_select.append(item)
+        #     print(item)
+
+        # ''' Check if CTRL key pressed; if so, append selected items to existing
+        #     GetModifiers avoids problems with different keyboard layouts...
+        #     ...but is equivalent to ControlDown, see here:
+        #     https://wxpython.org/Phoenix/docs/html/wx.KeyboardState.html#wx.KeyboardState.ControlDown '''
+        # if event.GetModifiers() == wx.MOD_CONTROL:
+        #     print('CTRL held during 3D selection; appending selected item(s)...')
+        #     to_select = set(to_select)
+        #     print('To select item(s):', to_select)
+        #     to_select.update(selected)
+        #     to_select = list(to_select)
+
+        # ''' Freeze (and later thaw) to stop flickering while updating all views '''
+        # self.Freeze()
+
+        # ''' Update parts view
+        #     Use of veto is workaround to avoid ctc.EVT_TREE_SEL_CHANGED event...
+        #     firing for each part selected '''
+        # print('Updating parts view...')
+
+        # # ''' HR Nov 21: Switch added here to avoid multiple methods firing '''
+        # self._page.partTree_ctc.UnselectAll()
+
+        # for item in to_select:
+        #     self.UpdateListSelections(item)
+
+        # ''' Update other views '''
+        # # self.UpdateToggledImages()
+        # # self.UpdateSelectedNodes(called_by = 'OnLeftUp_3D')
+        # # self.Update3DView()
+
+        # self.Thaw()
+
+        ''' ------------------------------------
+        HR 25/11/21 New GUI update functionality
+        '''
+        ''' Check if CTRL key pressed; if so, append selected items to existing
+            GetModifiers avoids problems with different keyboard layouts...
+            ...but is equivalent to ControlDown, see here:
+            https://wxpython.org/Phoenix/docs/html/wx.KeyboardState.html#wx.KeyboardState.ControlDown '''
+        if event.GetModifiers() == wx.MOD_CONTROL:
+            print('CTRL held during 3D selection; retaining old selection(s)...')
+            retain = True
+        else:
+            print('CTRL not held during 3D selection; not retaining old selection(s)...')
+            retain = False
 
         ''' Get IDs of 3D shapes '''
-        to_select = []
+        IDS = []
         print('IDs of item(s) selected:')
         for shape in _shapes:
             ''' Inverse dict look-up '''
@@ -1155,67 +1219,39 @@ class MainWindow(wx.Frame):
             # item = [node for node in self.assembly.nodes if self.assembly.nodes[node]['shape_loc'][0] == shape][-1]
             ''' HR 05/11/21 Updated to account for empty shape field (e.g. for user-created sub-assemblies) '''
             item = [node for node in self.assembly.nodes if 'shape_loc' in self.assembly.nodes[node] and self.assembly.nodes[node]['shape_loc'][0] == shape][-1]
-            to_select.append(item)
-            print(item)
+            IDS.append(item)
+        print('Items selected in 3D view: ', IDS)
 
-        ''' Check if CTRL key pressed; if so, append selected items to existing
-            GetModifiers avoids problems with different keyboard layouts...
-            ...but is equivalent to ControlDown, see here:
-            https://wxpython.org/Phoenix/docs/html/wx.KeyboardState.html#wx.KeyboardState.ControlDown '''
-        if event.GetModifiers() == wx.MOD_CONTROL:
-            print('CTRL held during 3D selection; appending selected item(s)...')
-            to_select = set(to_select)
-            print('To select item(s):', to_select)
-            to_select.update(selected)
-            to_select = list(to_select)
+        ''' Get selected items in old state, OS '''
+        OS = set(self.selected_items)
 
-        ''' Freeze (and later thaw) to stop flickering while updating all views '''
-        self.Freeze()
+        ''' Get selections in new state, NS '''
+        NS = self.get_NS(OS, IDS, retain = retain, select_all_children = self.SELECT_ALL_CHILDREN)
 
-        ''' Update parts view
-            Use of veto is workaround to avoid ctc.EVT_TREE_SEL_CHANGED event...
-            firing for each part selected '''
-        print('Updating parts view...')
-        # self.veto = True
-        # self._page.partTree_ctc.UnselectAll()
-        # for item in to_select:
-        #     self.UpdateListSelections(item)
-        # self.veto = False
+        ''' Get changing items '''
+        TS, TU = self.get_changes(OS, NS)[0:2]
 
-        ''' HR Nov 21: Switch added here to avoid multiple methods firing '''
-        self.parts_list_done = True
-        self._page.partTree_ctc.UnselectAll()
-        self.parts_list_done = False
-
-        for item in to_select:
-            self.parts_list_done = True
-            self.UpdateListSelections(item)
-            self.parts_list_done = False
-
-        ''' Update other views '''
-        self.UpdateToggledImages()
-        self.UpdateSelectedNodes(called_by = 'OnLeftUp_3D')
-        self.Update3DView()
-
-        self.Thaw()
+        ''' Update GUI globally '''
+        self.update_GUI(OS, NS, TS, TU)
+        ''' ------------------------------------ '''
 
 
 
     ''' HR 19/05/21 Refreshed to work with new STEP parsing method '''
     def Update3DView(self, items = None):
 
-        '''
-        transparency = None:    shaded
-        transparency = 1:       wireframe
-        '''
-        def display_shape(shape, c, transparency = None):
-            # shape = self.assembly.get_shape_with_position(shape_raw, loc)
-            self._page.occ_panel._display.DisplayShape(shape,
-                                                       color = Quantity_Color(c.Red(),
-                                                                              c.Green(),
-                                                                              c.Blue(),
-                                                                              Quantity_TOC_RGB),
-                                                       transparency = transparency)
+        # '''
+        # transparency = None:    shaded
+        # transparency = 1:       wireframe
+        # '''
+        # def display_shape(shape, c, transparency = None):
+        #     # shape = self.assembly.get_shape_with_position(shape_raw, loc)
+        #     self._page.occ_panel._display.DisplayShape(shape,
+        #                                                color = Quantity_Color(c.Red(),
+        #                                                                       c.Green(),
+        #                                                                       c.Blue(),
+        #                                                                       Quantity_TOC_RGB),
+        #                                                transparency = transparency)
 
         self._page.occ_panel._display.EraseAll()
 
@@ -1224,22 +1260,22 @@ class MainWindow(wx.Frame):
         # to_display = [el for el in self.assembly.nodes if not self.assembly.nodes[el]['is_subshape']]
 
         # for item in to_display:
-        for item in self.assembly.nodes:
+        for ID in self.assembly.nodes:
             ''' HR 29/10/21 Do not display if "hide" is true '''
-            if 'hide' in self.assembly.nodes[item]:
-                if self.assembly.nodes[item]['hide']:
+            if 'hide' in self.assembly.nodes[ID]:
+                if self.assembly.nodes[ID]['hide']:
                     continue
             try:
-                shape, c = self.assembly.nodes[item]['shape_loc']
+                shape, c = self.assembly.nodes[ID]['shape_loc']
             except:
                 shape, c = None, None
             ''' Don't display assemblies, i.e. nodes without shapes '''
             if not shape:
                 continue
-            if item in selected_items:
-                display_shape(shape, c)
+            if ID in selected_items:
+                self.display_shape(ID, shape, c)
             else:
-                display_shape(shape, c, transparency = 1)
+                self.display_shape(ID, shape, c, transparency = 1)
             # print('Displaying node ', item)
 
         self._page.occ_panel._display.View.FitAll()
@@ -1294,11 +1330,11 @@ class MainWindow(wx.Frame):
         ''' ...then update active assembly... '''
         self._assembly_manager.update_colours_active(to_activate = [_id])
 
-        # active = self.assembly.assembly_id
-        # selected_items = []
-        # to_select = []
-        # # self._assembly_manager.update_colours_selected(active, selected = selected_items, to_select = to_select, to_unselect = to_unselect)
-        # self._assembly_manager.update_colours_selected(active, selected = selected_items, to_select = to_select, called_by = "DisplayLattice")
+        active = self.assembly.assembly_id
+        selected_items = []
+        to_select = []
+        # self._assembly_manager.update_colours_selected(active, selected = selected_items, to_select = to_select, to_unselect = to_unselect)
+        self._assembly_manager.update_colours_selected(active, selected = selected_items, to_select = to_select, called_by = "DisplayLattice")
 
         print('Finished "DisplayLattice"')
         self.DoDraw('DisplayLattice')
@@ -1324,9 +1360,314 @@ class MainWindow(wx.Frame):
         self.latt_tb.Show()
         print('Done toolbar "Show"')
 
-        ''' Update lattice panel layout '''
+        # ''' Update lattice panel layout '''
         # self.latt_panel.Layout()
-        print('Done layout')
+        # print('Done layout')
+
+
+
+    ''' HR 26/11/21 To compute all selected nodes, NS, in new state during global GUI update '''
+    def get_NS(self, OS, IDS, retain = False, select_all_children = False):
+        print('Running "get_NS"')
+
+        # ''' Prepare OS and ID '''
+        # if not type(OS) == set():
+        #     OS = set(OS)
+
+        ''' If ID is single node, i.e. originates from view that can only toggle
+            + only one at a time (lattice, selector) '''
+        if len(IDS) == 1 and OS :
+            ID = IDS[0]
+            if retain:
+                NS = OS.copy()
+                if ID in OS:
+                    NS.remove(ID)
+                else:
+                    NS.add(ID)
+                    if select_all_children:
+                        children = nx.descendants(self.assembly, ID)
+                        NS.update(children)
+            else:
+                if ID in OS:
+                    NS = set()
+                else:
+                    NS = {ID}
+                    if select_all_children:
+                        children = nx.descendants(self.assembly, ID)
+                        NS.update(children)
+
+        else:
+            ''' ...else if multiple IDs passed (len(IDS) > 1), i.e. multiple selections (parts or 3D views) '''
+            if retain:
+                NS = OS.copy()
+            else:
+                NS = set()
+            for ID in IDS:
+                NS.add(ID)
+                if select_all_children:
+                    children = nx.descendants(self.assembly, ID)
+                    NS.update(children)
+
+        print('NS: ', NS)
+        return NS
+
+
+
+    ''' HR 30/11/21 To get all items to be changed and excluded '''
+    def get_changes(self, OS, NS, IS = None):
+
+        ''' If IS not specified, assume same as OS '''
+        if not IS:
+            IS = OS.copy()
+
+        ''' Get unselected sets '''
+        HEAD = self.assembly.head
+        ALL = set(self.assembly.nodes) - {HEAD}
+        OU = ALL - OS
+        IU = ALL - IS
+        NU = ALL - NS
+
+        ''' Get selecting, unselecting and changing nodes '''
+        TS = NS & OU
+        TU = NU & OS
+        # CH = TS | TU
+
+        ''' Get already-selected/unselected nodes, and both, to be excluded as already done '''
+        AS = TS & IS
+        AU = TU & IU
+        # EX = AS | AU
+
+        # ''' Get still-to-select/unselect nodes '''
+        # SS = TS & IU
+        # SU = TU & IS
+
+        ''' Wrongly (un)selected items in IS, to be redone '''
+        ADS = (OS & NS) & IU
+        ADU = (OU & NU) & IS
+
+        return TS, TU, AS, AU, ADS, ADU
+
+
+
+    ''' HR 01/12/21 New method to include shape dictionary
+                    for displaying shapes individually; with "erase_shape"
+                    can avoid full erase and redraw; adapted from PythonOCC example here:
+                    https://github.com/tpaviot/pythonocc-demos/blob/master/examples/core_display_erase_shape.py '''
+    def display_shape(self, ID, shape, c, transparency = None):
+
+        shape_obj = self._page.occ_panel._display.DisplayShape(shape,
+                                                   color = Quantity_Color(c.Red(),
+                                                                          c.Green(),
+                                                                          c.Blue(),
+                                                                          Quantity_TOC_RGB),
+                                                   transparency = transparency)[0]
+        if hasattr(self._page, 'shape_dict'):
+            self._page.shape_dict[ID] = shape_obj
+        else:
+            self._page.shape_dict = {ID:shape_obj}
+
+
+
+    ''' HR 01/12/21 New method to erase shape individually
+                    to avoid full erase and redraw
+                    Adapted from PythonOCC example here:
+                    https://github.com/tpaviot/pythonocc-demos/blob/master/examples/core_display_erase_shape.py '''
+    def erase_shape(self, ID):
+        try:
+            shape_obj = self._page.shape_dict[ID]
+            self._page.shape_dict.pop(ID)
+            self._page.occ_panel._display.Context.Erase(shape_obj, True)
+            # print('Erased shape from 3D view')
+        except:
+            # print("Couldn't erase shape from 3D view: shape not present")
+            pass
+
+
+
+    ''' HR 25/11/21
+        Method to update (de)selections in all views based on new analysis of GUI processes
+        OS, NS are nodes selected in new and old states
+        TS, TU are node to be selected/unselected
+        EX_<VIEW> (in kwargs) is view-specific exclusions, i.e. (de)selections to be vetoed
+            as already changed within event-emitting view
+            i.e.    EX_PARTS = node(s) already changed in parts view
+                    EX_SELECTOR = node already changed in selector view (can only be one) '''
+    def update_GUI(self, OS, NS, TS, TU, called_by = None, **kwargs):
+
+        print('\nRunning "update_GUI"')
+        if called_by:
+            print(' Called by: ', called_by)
+
+        ''' Freeze (and later thaw) to stop flickering while updating all views '''
+        self.Freeze()
+
+
+
+        # self._page.occ_panel._display.EraseAll()
+
+        for ID in TS | TU:
+            node_dict = self.assembly.nodes[ID]
+            # ''' HR 29/10/21 Do not display if "hide" is true '''
+            # if 'hide' in node_dict:
+            #     if node_dict['hide']:
+            #         continue
+            try:
+                shape, c = node_dict['shape_loc']
+            except:
+                shape, c = None, None
+                # continue
+            ''' Don't display assemblies, i.e. nodes without shapes '''
+            if not shape:
+                continue
+            self.erase_shape(ID)
+            if ID in TS:
+                self.display_shape(ID, shape, c)
+                # print('Displaying S shape')
+            else:
+                self.display_shape(ID, shape, c, transparency = 1)
+                # print('Displaying U shape')
+                # self.erase_shape(ID)
+
+        self._page.occ_panel._display.View.FitAll()
+
+
+
+        ''' ---------------------
+        UPDATE LATTICE VIEW
+        '''
+        active = self.assembly.assembly_id
+        latt = self._assembly_manager._lattice
+        NS_MASTER = set([self._assembly_manager.get_master_node(active, ID) for ID in NS])
+        TS_MASTER = set([self._assembly_manager.get_master_node(active, ID) for ID in TS])
+        TU_MASTER = set([self._assembly_manager.get_master_node(active, ID) for ID in TU])
+
+        print('NS: ', NS_MASTER)
+        print('TS: ', TS_MASTER)
+        print('TU: ', TU_MASTER)
+
+        active_edges = [edge for edge in latt.edges if active in latt.edges[edge]]
+
+        latt = self._assembly_manager._lattice
+        sc = self._assembly_manager.sc
+        dc = self._assembly_manager.dc
+
+        ''' Colour nodes '''
+        for ID in TS_MASTER:
+            latt.node_dict[ID].set_facecolor(sc)
+        for ID in TU_MASTER:
+            latt.node_dict[ID].set_facecolor(dc)
+
+        ''' Colour main edges '''
+        for ID in TS_MASTER:
+            for u,v in latt.in_edges(ID):
+                if (u in NS_MASTER) and (u,v) in active_edges:
+                    print('Colouring edge (selected): ', (u,v))
+                    latt.edge_dict[(u,v)].set_color(sc)
+            for u,v in latt.out_edges(ID):
+                if (v in NS_MASTER) and (u,v) in active_edges:
+                    print('Colouring edge (selected): ', (u,v))
+                    latt.edge_dict[(u,v)].set_color(sc)
+        for ID in TU_MASTER:
+            for u,v in latt.in_edges(ID):
+                if (u,v) in active_edges:
+                    latt.edge_dict[(u,v)].set_color(dc)
+                    print('Colouring edge (deselected): ', (u,v))
+            for u,v in latt.out_edges(ID):
+                if (u,v) in active_edges:
+                    latt.edge_dict[(u,v)].set_color(dc)
+                    print('Colouring edge (deselected): ', (u,v))
+
+        ''' Colour infumum edges '''
+        leaves = set(latt.leaves)
+        TS_leaves = TS_MASTER & leaves
+        TU_leaves = TU_MASTER & leaves
+        for leaf in TS_leaves:
+            latt.edge_dict[(leaf,None)].set_color(sc)
+        for leaf in TU_leaves:
+            latt.edge_dict[(leaf,None)].set_color(dc)
+        ''' Redraw lattice '''
+        self.DoDraw()
+
+
+
+        ''' ---------------------
+        UPDATE SELECTOR VIEW
+        '''
+        self.VETO_SELECTOR = True
+
+        ''' Exclude already-toggled image '''
+        if 'EX_SELECTOR' in kwargs:
+            EX_SELECTOR = kwargs['EX_SELECTOR']
+            TS_ = TS - EX_SELECTOR
+            TU_ = TU - EX_SELECTOR
+        else:
+            TS_ = TS
+            TU_ = TU
+        ''' Do all selections '''
+        for node in TS_:
+            b_dict = self._page.button_dict
+            if node in b_dict:
+                button = b_dict[node]
+                button.SetValue(True)
+        ''' Do all deselections '''
+        for node in TU_:
+            b_dict = self._page.button_dict
+            if node in b_dict:
+                button = b_dict[node]
+                button.SetValue(False)
+
+        self.VETO_SELECTOR = False
+
+
+
+        ''' ---------------------
+        UPDATE PART VIEWS
+        '''
+        self.VETO_PARTS = True
+        print(' Veto parts ON')
+
+        ''' Get all IDs to change, as parts list items can be toggled '''
+        TC = TS | TU
+        print(' IDs to change in parts list: ', TC)
+        ''' Exclude already-toggled ctc items '''
+        if 'EX_PARTS' in kwargs:
+            EX_ = kwargs['EX_PARTS']
+            TC = TC - EX_
+            print(' Excluding: ', EX_)
+        ''' Add extra parts that are wrongly (un)selected in IS/IU '''
+        if 'AD_PARTS' in kwargs:
+            AD_ = kwargs['AD_PARTS']
+            TC = TC | AD_
+        ''' Select/deselect parts list item
+            With "select = True", SelectItem toggles state if multiple selections enabled
+            https://wxpython.org/Phoenix/docs/html/wx.lib.agw.customtreectrl.CustomTreeCtrl.html '''
+        for ID in TC:
+            print('   Toggling parts list item ', ID)
+            self._page.partTree_ctc.SelectItem(self._page.ctc_dict[ID], select = True)
+
+        self.VETO_PARTS = False
+        print(' Veto parts OFF')
+
+
+
+        self.Thaw()
+        print('Done "update_GUI"\n')
+
+
+
+    # def UpdateToggledImages(self):
+
+    #     for id_, button in self._page.button_dict.items():
+    #         button.SetValue(False)
+
+    #     selected_items = self.selected_items
+
+    #     for id_ in selected_items:
+    #         if id_ in self._page.button_dict:
+    #             button = self._page.button_dict[id_]
+    #             button.SetValue(True)
+    #         else:
+    #             pass
 
 
 
@@ -1438,9 +1779,9 @@ class MainWindow(wx.Frame):
         if type(items) is list:
             self.selected_items = items
         elif type(items) is int:
-            self.selected_items[items]
+            self.selected_items = [items]
         else:
-            print('Selected items not reset: items must be list')
+            print('Selected items not reset: items must be list or int')
 
 
 
@@ -1540,77 +1881,133 @@ class MainWindow(wx.Frame):
 
 
     def TreeItemSelectionChanging(self, event):
-        previous_selections = self.selected_items
-        print('Items selected before change in tree selections:', previous_selections)
-        wx.CallAfter(self.TreeItemSelected, previous_selections, event)
-        # event.Skip()
 
-        ''' HR Nov 21: Switch to avoid multiple firings '''
-        if self.parts_list_done:
-            print('Vetoing tree selection event as called, not triggered in parts view')
-            event.Veto()
+        if self.VETO_PARTS:
+            # OS = None
+            print('Tree selections changed, but vetoing GUI update: parts view veto')
         else:
-            print('Skipping (forwarding) tree selection event')
-            event.Skip()
+            self.OS = set(self.selected_items)
+            print('Items selected before change in tree selections:', self.OS)
+
+            ''' HR 01/12/21 "CallAfter" NOT compatible with VETO_<VIEW> GUI update design!
+                            b/c event processing sequence is NESTED, not linear
+                            so results in out-of-veto selections being executed
+                            that should be vetoed
+                            Resolved by directly using separate "changing" and "changed" methods '''
+            # wx.CallAfter(self.TreeItemSelectionChanged, OS, event)
 
 
 
-    def TreeItemSelected(self, previous_selections, event):
+    # def TreeItemSelectionChanged(self, OS, event):
+    def TreeItemSelectionChanged(self, event):
 
-        new_selections = self.selected_items
+        # NS = self.selected_items
 
-        ''' HR 05/11/21 Switch to allow all children to be selected '''
-        print('Selected items:', new_selections)
-        if self.SELECT_ALL_DESCENDANTS:
-            tree = self._page.partTree_ctc
-            tree_item = event.GetItem()
+        # ''' HR 05/11/21 Switch to allow all children to be selected '''
+        # print('Selected items:', NS)
+        # if self.SELECT_ALL_CHILDREN:
+        #     tree = self._page.partTree_ctc
+        #     tree_item = event.GetItem()
 
-            self.part_list_done = True
-            tree.SelectAllChildren(tree_item)
-            self.part_list_done = False
+        #     self.part_list_done = True
+        #     tree.SelectAllChildren(tree_item)
+        #     self.part_list_done = False
 
-            new_selections_copy = [el for el in new_selections]
-            for node in new_selections_copy:
-                new_selections.extend(nx.descendants(self.assembly, node))
-            new_selections = list(set(new_selections))
+        #     NS_copy = [el for el in NS]
+        #     for node in NS_copy:
+        #         NS.extend(nx.descendants(self.assembly, node))
+        #     NS = list(set(NS))
 
-            print('Selected items and all children: ', new_selections)
+        #     print('Selected items and all children: ', NS)
 
-        '''
-        Don't execute if raised by 3D view selection...
-        as would redo for every selected item...
-        or if new selections are same as previous
-        '''
-        # new_selections = self.selected_items
-        # if self.veto or (previous_selections == new_selections):
-        #     print('Vetoing tree selection change')
-        #     event.Veto()
-        #     self.veto = False
-        #     return
+        # '''
+        # Don't execute if raised by 3D view selection...
+        # as would redo for every selected item...
+        # or if new selections are same as previous
+        # '''
 
-        print('Tree item selected, updating selector, lattice and 3D views...')
-        ''' Update images and lattice view '''
-        self.UpdateToggledImages()
-        self.UpdateSelectedNodes(called_by = 'TreeItemSelected')
-        self.Update3DView(new_selections)
+        # print('Tree item selected, updating selector, lattice and 3D views...')
+        # ''' Update images and lattice view '''
+        # self.UpdateToggledImages()
+        # self.UpdateSelectedNodes(called_by = 'TreeItemSelected')
+        # self.Update3DView(NS)
+
+        ''' HR 30/11/21 To integrate global GUI update method '''
+        ''' Abort if vetoed '''
+        if self.VETO_PARTS:
+            print('Part veto; returning')
+            return
+
+
+
+        ''' Get intermediate (current) state '''
+        IS = set(self.selected_items)
+        print('Items selected in intermediate state:', IS)
+
+        ''' Get new state '''
+        NS = IS.copy()
+        if self.SELECT_ALL_CHILDREN:
+            print('Children added to NS: ')
+            for ID in IS:
+                children = nx.descendants(self.assembly, ID)
+                NS.update(children)
+                print(' ', children)
+
+        print('Items to be selected in new state:', NS)
+
+        ''' Get changing items '''
+        results = self.get_changes(self.OS, NS, IS = IS)
+        TS, TU = results[0:2]
+        EX = set(results[2]) | set(results[3])
+        AD = set(results[4]) | set(results[5])
+
+        ''' Update GUI globally '''
+        self.update_GUI(self.OS, NS, TS, TU, called_by = 'TISC', EX_PARTS = EX, AD_PARTS = AD)
 
 
 
     def ImageToggled(self, event):
 
-        print('Image toggled')
-        node = self._page.button_dict_inv[event.GetEventObject()]
+        # print('Image toggled')
+        # node = self._page.button_dict_inv[event.GetEventObject()]
         # self.UpdateListSelections(node)
 
-        self.parts_list_done = True
-        self.UpdateListSelections(node)
-        self.parts_list_done = False
+        ''' HR 30/11/21 To integrate new GUI-wide update method '''
+        ''' Abort if vetoed '''
+        if self.VETO_SELECTOR:
+            print('Image toggled, but vetoing GUI update: selector view veto')
+            return
+
+        print('Image toggled')
+        ''' Get ID of toggled item '''
+        ID = self._page.button_dict_inv[event.GetEventObject()]
+
+        ''' Get old state '''
+        OS = set(self.selected_items)
+
+        ''' Get intermediate (current) state '''
+        IS = OS.copy()
+        if ID in OS:
+            IS.remove(ID)
+        else:
+            IS.add(ID)
+
+        ''' Get new state '''
+        NS = self.get_NS(OS, [ID], retain = True, select_all_children = self.SELECT_ALL_CHILDREN)
+
+        ''' Get changing items '''
+        results = self.get_changes(OS, NS, IS = IS)
+        TS, TU = results[0:2]
+        EX = set(results[2]) | set(results[3])
+
+        ''' Update GUI globally '''
+        self.update_GUI(OS, NS, TS, TU, EX_SELECTOR = EX)
 
 
 
     def GetLattPos(self, event):
 
-        print('GetLattPos')
+        print('Running "GetLattPos"')
 
         # print('%s: button = %d, x = %d, y = %d, xdata = %f, ydata = %f' %
         #       ('Double click' if event.dblclick else 'Single click', event.button,
@@ -1734,36 +2131,64 @@ class MainWindow(wx.Frame):
 
 
 
+            # ''' Get already-selected items in active assembly '''
+            # active = self.assembly.assembly_id
+            # selected_items = self.selected_items
+            # latt = self._assembly_manager._lattice
+            # if active in latt.nodes[node]:
+            #     print('Node in active assembly: de/selecting...')
+            #     node = latt.nodes[node][active]
+            # else:
+            #     print('Node not in active assembly; returning')
+            #     return
+
+            # ''' Update node colourings in lattice view '''
+            # if node in selected_items:
+            #     print('Unselecting...')
+            #     to_select = []
+            #     to_unselect = [node]
+            # else:
+            #     print('Selecting...')
+            #     to_select = []
+            #     to_unselect = [node]
+
+            # self._assembly_manager.update_colours_selected(active, selected = selected_items, to_select = to_select, to_unselect = to_unselect, called_by = "OnLatticeMouseRelease")
+            # # self._assembly_manager.update_colours_selected(active, selected = selected_items, to_select = to_select)
+
+            # self.DoDraw('OnLatticeMouseRelease')
+
+            # ''' Update items in parts list using assembly node ID '''
+            # self.UpdateListSelections(node)
+
+            ''' ------------------------------------
+            HR 25/11/21 New GUI update functionality
+            '''
             ''' Get already-selected items in active assembly '''
             active = self.assembly.assembly_id
-            selected_items = self.selected_items
             latt = self._assembly_manager._lattice
+
+            ''' Check if node is in active assembly; if not, veto and return '''
             if active in latt.nodes[node]:
                 print('Node in active assembly: de/selecting...')
-                node = latt.nodes[node][active]
+                ID = latt.nodes[node][active]
             else:
                 print('Node not in active assembly; returning')
                 return
 
-            ''' Update node colourings in lattice view '''
-            if node in selected_items:
-                print('Unselecting...')
-                to_select = []
-                to_unselect = [node]
-            else:
-                print('Selecting...')
-                to_select = []
-                to_unselect = [node]
+            ''' Get selected items in old state, OS '''
+            OS = set(self.selected_items)
 
-            self._assembly_manager.update_colours_selected(active, selected = selected_items, to_select = to_select, to_unselect = to_unselect, called_by = "OnLatticeMouseRelease")
-            # self._assembly_manager.update_colours_selected(active, selected = selected_items, to_select = to_select)
+            ''' Get selections in new state, NS '''
+            NS = self.get_NS(OS, [ID], retain = True, select_all_children = self.SELECT_ALL_CHILDREN)
 
-            self.DoDraw('OnLatticeMouseRelease')
+            ''' Get changing items '''
+            results = self.get_changes(OS, NS)
+            TS = results[0]
+            TU = results[1]
 
-            ''' Update items in parts list using assembly node ID '''
-            self.parts_list_done = True
-            self.UpdateListSelections(node)
-            self.parts_list_done = False
+            ''' Update GUI globally '''
+            self.update_GUI(OS, NS, TS, TU)
+            ''' ------------------------------------ '''
 
 
 
@@ -1785,27 +2210,28 @@ class MainWindow(wx.Frame):
 
 
 
-    def UpdateListSelections(self, node):
+    # def UpdateListSelections(self, node, select = True):
 
-        ''' Select/deselect parts list item
-            With "select = True", SelectItem toggles state if multiple selections enabled '''
-        self._page.partTree_ctc.SelectItem(self._page.ctc_dict[node], select = True)
+    #     ''' Select/deselect parts list item
+    #         With "select = True", SelectItem toggles state if multiple selections (ctc.TR_MULTIPLE) enabled
+    #             https://wxpython.org/Phoenix/docs/html/wx.lib.agw.customtreectrl.CustomTreeCtrl.html '''
+    #     self._page.partTree_ctc.SelectItem(self._page.ctc_dict[node], select = select)
 
 
 
-    def UpdateToggledImages(self):
+    # def UpdateToggledImages(self):
 
-        for id_, button in self._page.button_dict.items():
-            button.SetValue(False)
+    #     for id_, button in self._page.button_dict.items():
+    #         button.SetValue(False)
 
-        selected_items = self.selected_items
+    #     selected_items = self.selected_items
 
-        for id_ in selected_items:
-            if id_ in self._page.button_dict:
-                button = self._page.button_dict[id_]
-                button.SetValue(True)
-            else:
-                pass
+    #     for id_ in selected_items:
+    #         if id_ in self._page.button_dict:
+    #             button = self._page.button_dict[id_]
+    #             button.SetValue(True)
+    #         else:
+    #             pass
 
 
 
@@ -2128,7 +2554,7 @@ class MainWindow(wx.Frame):
 
         ''' HR 12/10/21 To add user-defined data to node via dialog '''
         print('Adding node data...')
-        dlg = DataEntryDialog(parent = self) 
+        dlg = DataEntryDialog(parent = self)
         dlg.ShowModal()
         if dlg.result_field and dlg.result_value:
             print("Field:value = " + dlg.result_field + ':' + dlg.result_value + "\n")
@@ -2428,7 +2854,7 @@ class MainWindow(wx.Frame):
 
         self._page.Bind(ctc.EVT_TREE_ITEM_CHECKED, self.TreeItemChecked)
         self._page.Bind(ctc.EVT_TREE_SEL_CHANGING, self.TreeItemSelectionChanging)
-        # self._page.Bind(ctc.EVT_TREE_SEL_CHANGED,  self.TreeItemSelected)
+        self._page.Bind(ctc.EVT_TREE_SEL_CHANGED, self.TreeItemSelectionChanged)
 
         self._page.Bind(wx.EVT_TOGGLEBUTTON, self.ImageToggled)
 
