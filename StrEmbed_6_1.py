@@ -472,7 +472,7 @@ class MainWindow(wx.Frame):
         self._highlight_colour = wx.RED
         self.LATTICE_PLOT_MODE_DEFAULT = True
         self.COMMON_SELECTOR_VIEW = True
-        self.SELECT_ALL_CHILDREN = False
+        self.SELECT_ALL_CHILDREN = True
 
         self.origin = (0,0)
         self.click_pos = None
@@ -738,23 +738,23 @@ class MainWindow(wx.Frame):
             self.AddText('Two assemblies not selected')
             return
 
-        _s1 = self.selector_1.GetSelection()
-        _s2 = self.selector_2.GetSelection()
+        s1 = self.selector_1.GetSelection()
+        s2 = self.selector_2.GetSelection()
 
-        if _s1 == _s2:
+        if s1 == s2:
             self.AddText('Two different assemblies must be selected')
             return None
 
-        _name1 = self.selector_1.GetString(_s1)
-        _name2 = self.selector_1.GetString(_s2)
+        name1 = self.selector_1.GetString(s1)
+        name2 = self.selector_1.GetString(s2)
         self.AddText('Assemblies selected:')
-        print(_name1)
-        print(_name2)
+        print(name1)
+        print(name2)
 
-        p1 = [el for el in self._notebook_manager if el.name == _name1][0]
+        p1 = [el for el in self._notebook_manager if el.name == name1][0]
         id1 = self._notebook_manager[p1]
         # a1 = self._assembly_manager._mgr[id1]
-        p2 = [el for el in self._notebook_manager if el.name == _name2][0]
+        p2 = [el for el in self._notebook_manager if el.name == name2][0]
         id2 = self._notebook_manager[p2]
         # a2 = self._assembly_manager._mgr[id2]
 
@@ -823,24 +823,24 @@ class MainWindow(wx.Frame):
 
         self.AddText('Tree reconciliation running...')
 
-        _assemblies = self.get_selected_assemblies()
+        assemblies = self.get_selected_assemblies()
 
-        if not _assemblies:
+        if not assemblies:
             self.AddText('Could not get assemblies')
             return None
 
-        a1 = _assemblies[0]
-        a2 = _assemblies[1]
+        a1 = assemblies[0]
+        a2 = assemblies[1]
 
         ''' HR June 21 "Reconcile" moved from StepParse class method to AssemblyManager '''
         # paths, cost, cost_from_edits, node_edits, edge_edits = StepParse.Reconcile(a1, a2)
         paths, cost, cost_from_edits, node_edits, edge_edits = self._assembly_manager.Reconcile(a1, a2)
 
-        _textout = 'Node edits: {}\nEdge edits: {}\nTotal cost (Networkx): {}\nTotal cost (no. of edits): {}'.format(
+        textout = 'Node edits: {}\nEdge edits: {}\nTotal cost (Networkx): {}\nTotal cost (no. of edits): {}'.format(
             node_edits, edge_edits, cost, cost_from_edits)
 
         self.AddText('Tree reconciliation finished')
-        self.DoNothingDialog(event, _textout)
+        self.DoNothingDialog(event, textout)
 
 
 
@@ -914,35 +914,35 @@ class MainWindow(wx.Frame):
 
 
     def OnRenameAssembly(self, event):
-        _page = self._notebook.GetPage(self._notebook.GetSelection())
-        _old_name = _page.name
+        page = self._notebook.GetPage(self._notebook.GetSelection())
+        old_name = page.name
 
-        _new_name_okay= False
-        while not _new_name_okay:
-            _new_name = self.UserInput(caption = 'Enter new assembly name', value = _old_name)
-            if _old_name == _new_name:
+        new_name_okay= False
+        while not new_name_okay:
+            new_name = self.UserInput(caption = 'Enter new assembly name', value = old_name)
+            if old_name == new_name:
                 return
             ''' Remove special characters '''
-            _new_name_corr = re.sub('[!@~#$_]', '', _new_name)
-            if _new_name_corr != _new_name:
-                _new_name = _new_name_corr
+            new_name_corr = re.sub('[!@~#$_]', '', new_name)
+            if new_name_corr != new_name:
+                new_name = new_name_corr
                 print('Special characters removed')
             ''' Check new name not in existing names (excluding current) '''
-            _names = [el.name for el in self._notebook_manager]
-            _names.remove(_old_name)
-            if _new_name not in _names:
+            names = [el.name for el in self._notebook_manager]
+            names.remove(old_name)
+            if new_name not in names:
                 print('New name not in existing names')
-                _new_name_okay = True
+                new_name_okay = True
             else:
                 print('New name in existing names! No can do, buddy!')
                 continue
             ''' Check new name is string of non-zero length '''
-            if isinstance(_new_name, str) and _new_name:
+            if isinstance(new_name, str) and new_name:
                 print('New name applied')
-                _new_name_okay = True
+                new_name_okay = True
 
-        _page.name = _new_name
-        self._notebook.SetPageText(self._notebook.GetSelection(), _new_name)
+        page.name = new_name
+        self._notebook.SetPageText(self._notebook.GetSelection(), new_name)
 
 
 
@@ -952,21 +952,21 @@ class MainWindow(wx.Frame):
             print('Cannot delete only assembly')
             return
 
-        _selection = self._notebook.GetSelection()
-        _page = self._notebook.GetPage(_selection)
+        selection = self._notebook.GetSelection()
+        page = self._notebook.GetPage(selection)
 
         ''' Delete notebook page, correponding assembly object and dictionary entry '''
-        self._notebook.DeletePage(_selection)
-        _id = self._notebook_manager[_page]
+        self._notebook.DeletePage(selection)
+        _id = self._notebook_manager[page]
 
         self._assembly_manager.remove_assembly(_id)
-        self._notebook_manager.pop(_page)
+        self._notebook_manager.pop(page)
         self.AddText('Assembly deleted')
 
         ''' WX will default to another notebook page, so get active page and assembly '''
-        _selection = self._notebook.GetSelection()
-        _page = self._notebook.GetPage(_selection)
-        _id = self._notebook_manager[_page]
+        selection = self._notebook.GetSelection()
+        page = self._notebook.GetPage(selection)
+        _id = self._notebook_manager[page]
         self.assembly = self._assembly_manager._mgr[_id]
 
         ''' Finally, refresh lattice view '''
@@ -1143,9 +1143,9 @@ class MainWindow(wx.Frame):
 
         ''' Grab selected parts in 3D view '''
         print('Getting selected part(s) from 3D view...')
-        _shapes = self._page.occ_panel._display.selected_shapes
+        shapes = self._page.occ_panel._display.selected_shapes
 
-        if not _shapes:
+        if not shapes:
             return
 
         # selected = self.selected_items
@@ -1212,7 +1212,7 @@ class MainWindow(wx.Frame):
         ''' Get IDs of 3D shapes '''
         IDS = []
         print('IDs of item(s) selected:')
-        for shape in _shapes:
+        for shape in shapes:
             ''' Inverse dict look-up '''
             # item = [k for k,v in self.assembly.OCC_dict.items() if v == shape][-1]
             ''' HR 19/05/12 New version to look in node dicts for shape '''
@@ -1608,13 +1608,19 @@ class MainWindow(wx.Frame):
             b_dict = self._page.button_dict
             if node in b_dict:
                 button = b_dict[node]
-                button.SetValue(True)
+                try:
+                    button.SetValue(True)
+                except:
+                    print('Could not set button toggle value')
         ''' Do all deselections '''
         for node in TU_:
             b_dict = self._page.button_dict
             if node in b_dict:
                 button = b_dict[node]
-                button.SetValue(False)
+                try:
+                    button.SetValue(False)
+                except:
+                    print('Could not set button toggle value')
 
         self.VETO_SELECTOR = False
 
@@ -1745,6 +1751,11 @@ class MainWindow(wx.Frame):
             menu_item = menu.Append(wx.ID_ANY, 'Remove parts', 'Remove parts')
             self.Bind(wx.EVT_MENU, self.OnRemoveNode, menu_item)
 
+            ''' HR 10/12/21 To add on-the-spot similarity score '''
+            if len(selected_items) == 2:
+                menu_item = menu.Append(wx.ID_ANY, 'Get similarity scores', 'Get similarity scores between two items')
+                self.Bind(wx.EVT_MENU, self.OnGetSims, menu_item)
+
         ''' Create popup menu at current mouse position (default if no positional argument passed) '''
         self.PopupMenu(menu)
         menu.Destroy()
@@ -1757,6 +1768,23 @@ class MainWindow(wx.Frame):
     #         tree_item = self._page.ctc_dict[item]
     #         self._page.partTree_ctc.SetItemTextColour(tree_item, self._highlight_colour)
     #     print('Changing item property and finding affected items...')
+
+
+
+    def OnGetSims(self, event = None):
+        print('Getting all similarity scores between two selected items...')
+        items = self.selected_items
+        print(' Selected items: ', items)
+
+        ''' Get all scores via assembly manager '''
+        _page = self._notebook.GetPage(self._notebook.GetSelection())
+        assembly_id = self._notebook_manager[_page]
+        s1, s2, s3, s4 = self._assembly_manager.get_sims(assembly_id, assembly_id, items[0], items[1])[1]
+        sim_text = 'Name: {:10.3f}\nLocal structure: {:10.3f}\nBounding box: {:10.3f}\nShape: {:10.3f}'.format(s1, s2, s3, s4)
+
+        dialog = wx.MessageDialog(self, sim_text, 'Similarity scores for selected items', wx.OK)
+        dialog.ShowModal()
+        dialog.Destroy()
 
 
 
@@ -2122,7 +2150,7 @@ class MainWindow(wx.Frame):
                 print('Outside tolerance, getting position on nearest line')
 
                 list_ = [el for el in range(len(plot_obj.leaves)+1)]
-                y__ = get_nearest(event.ydata, list_)
+                # y__ = get_nearest(event.ydata, list_)
                 return
 
             print('Inside tolerance, (de)selecting nearest node')
@@ -2254,10 +2282,10 @@ class MainWindow(wx.Frame):
             print('No or one item(s) selected')
             return
 
-        _page = self._notebook.GetPage(self._notebook.GetSelection())
-        _assembly_id = self._notebook_manager[_page]
-        _parent = self._assembly_manager.assemble_in_lattice(_assembly_id, selected_items)
-        if not _parent:
+        page = self._notebook.GetPage(self._notebook.GetSelection())
+        assembly_id = self._notebook_manager[page]
+        parent = self._assembly_manager.assemble_in_lattice(assembly_id, selected_items)
+        if not parent:
             print('Could not assemble')
             return
 
@@ -2283,10 +2311,10 @@ class MainWindow(wx.Frame):
             print('Cannot flatten: no/more than one item(s) selected')
             return
 
-        _page = self._notebook.GetPage(self._notebook.GetSelection())
-        _assembly_id = self._notebook_manager[_page]
-        _done = self._assembly_manager.flatten_in_lattice(_assembly_id, node)
-        if not _done:
+        page = self._notebook.GetPage(self._notebook.GetSelection())
+        assembly_id = self._notebook_manager[page]
+        done = self._assembly_manager.flatten_in_lattice(assembly_id, node)
+        if not done:
             print('Could not flatten')
             return
 
@@ -2311,10 +2339,10 @@ class MainWindow(wx.Frame):
             print('Cannot disaggregate: no/more than one item(s) selected')
             return
 
-        _page = self._notebook.GetPage(self._notebook.GetSelection())
-        _assembly_id = self._notebook_manager[_page]
-        _new_nodes = self._assembly_manager.disaggregate_in_lattice(_assembly_id, node)
-        if not _new_nodes:
+        page = self._notebook.GetPage(self._notebook.GetSelection())
+        assembly_id = self._notebook_manager[page]
+        new_nodes = self._assembly_manager.disaggregate_in_lattice(assembly_id, node)
+        if not new_nodes:
             print('Could not disaggregate')
             return
 
@@ -2340,10 +2368,10 @@ class MainWindow(wx.Frame):
             print('Cannot aggregate: no/more than one item(s) selected')
             return
 
-        _page = self._notebook.GetPage(self._notebook.GetSelection())
-        _assembly_id = self._notebook_manager[_page]
-        _removed_nodes = self._assembly_manager.aggregate_in_lattice(_assembly_id, node)
-        if not _removed_nodes:
+        page = self._notebook.GetPage(self._notebook.GetSelection())
+        assembly_id = self._notebook_manager[page]
+        removed_nodes = self._assembly_manager.aggregate_in_lattice(assembly_id, node)
+        if not removed_nodes:
             print('Could not aggregate')
             return
 
@@ -2369,10 +2397,10 @@ class MainWindow(wx.Frame):
             print('Cannot add node: no/more than one item(s) selected')
             return
 
-        _page = self._notebook.GetPage(self._notebook.GetSelection())
-        _assembly_id = self._notebook_manager[_page]
-        _new_node = self._assembly_manager.add_node_in_lattice(_assembly_id, node)
-        if not _new_node:
+        page = self._notebook.GetPage(self._notebook.GetSelection())
+        assembly_id = self._notebook_manager[page]
+        new_node = self._assembly_manager.add_node_in_lattice(assembly_id, node)
+        if not new_node:
             print('Could not add node')
             return
 
@@ -2402,20 +2430,20 @@ class MainWindow(wx.Frame):
             return
 
         ''' Check root is not present in selected items '''
-        _root = self.assembly.get_root()
-        if _root in selected_items:
+        root = self.assembly.get_root()
+        if root in selected_items:
             if len(selected_items) == 1:
                 print('Cannot remove root')
                 return
             else:
                 print('Cannot remove root; removing other selected nodes')
-                selected_items.remove(_root)
+                selected_items.remove(root)
 
-        _page = self._notebook.GetPage(self._notebook.GetSelection())
-        _assembly_id = self._notebook_manager[_page]
+        page = self._notebook.GetPage(self._notebook.GetSelection())
+        assembly_id = self._notebook_manager[page]
         for node in selected_items:
             try:
-                self._assembly_manager.remove_node_in_lattice(_assembly_id, node)
+                self._assembly_manager.remove_node_in_lattice(assembly_id, node)
             except:
                 print('Could not remove node ', node, ' as not present; may have been removed already')
 
@@ -2564,14 +2592,14 @@ class MainWindow(wx.Frame):
         # dlg.Destroy()
 
         ''' Add data to node '''
-        _ass = self.assembly
+        ass = self.assembly
         node = self.selected_items[0]
-        if 'data' in _ass.nodes[node]:
+        if 'data' in ass.nodes[node]:
             print('Data dict already present; adding')
-            _ass.nodes[node]['data'][dlg.result_field] = dlg.result_value
+            ass.nodes[node]['data'][dlg.result_field] = dlg.result_value
         else:
             print('Data dict not present; creating and adding')
-            _ass.nodes[node]['data'] = {dlg.result_field: dlg.result_value}
+            ass.nodes[node]['data'] = {dlg.result_field: dlg.result_value}
 
 
 
@@ -2622,31 +2650,31 @@ class MainWindow(wx.Frame):
         if drop_parent == drag_parent:
 
             sort_id = 1
-            (child_, cookie_) = self._page.partTree_ctc.GetFirstChild(drop_parent)
+            (child, cookie) = self._page.partTree_ctc.GetFirstChild(drop_parent)
 
             ''' If drop item found, slip drag item into its place '''
-            if child_ == drop_item:
+            if child == drop_item:
                 self._page.partTree_ctc.GetPyData(self.tree_drag_item)['sort_id'] = sort_id
                 sort_id += 1
-            elif child_ == self.tree_drag_item:
+            elif child == self.tree_drag_item:
                 pass
             else:
-                self._page.partTree_ctc.GetPyData(child_)['sort_id'] = sort_id
+                self._page.partTree_ctc.GetPyData(child)['sort_id'] = sort_id
                 sort_id += 1
 
-            child_ = self._page.partTree_ctc.GetNextSibling(child_)
-            while child_:
+            child = self._page.partTree_ctc.GetNextSibling(child)
+            while child:
 
                 ''' If drop item found, slip drag item into its place '''
-                if child_ == drop_item:
+                if child == drop_item:
                     self._page.partTree_ctc.GetPyData(self.tree_drag_item)['sort_id'] = sort_id
                     sort_id += 1
-                elif child_ == self.tree_drag_item:
+                elif child == self.tree_drag_item:
                     pass
                 else:
-                    self._page.partTree_ctc.GetPyData(child_)['sort_id'] = sort_id
+                    self._page.partTree_ctc.GetPyData(child)['sort_id'] = sort_id
                     sort_id += 1
-                child_ = self._page.partTree_ctc.GetNextSibling(child_)
+                child = self._page.partTree_ctc.GetNextSibling(child)
 
             ''' Re-sort, then return to avoid redrawing part tree otherwise '''
             self._page.partTree_ctc.alphabetical = False
@@ -2667,9 +2695,9 @@ class MainWindow(wx.Frame):
             Move node via assembly manager (was assembly-specific)
             No need to check if present in lattice, as manager checks during
             all node and edge removal operations '''
-        _page = self._notebook.GetPage(self._notebook.GetSelection())
-        _assembly_id = self._notebook_manager[_page]
-        self._assembly_manager.move_node_in_lattice(_assembly_id, self.tree_drag_id, parent)
+        page = self._notebook.GetPage(self._notebook.GetSelection())
+        assembly_id = self._notebook_manager[page]
+        self._assembly_manager.move_node_in_lattice(assembly_id, self.tree_drag_id, parent)
 
         ''' Propagate changes '''
         self.ClearGUIItems()
@@ -2687,12 +2715,12 @@ class MainWindow(wx.Frame):
 
     def AfterTreeLabelEdit(self, event, text_before):
 
-        item_ = event.GetItem()
-        text_ = item_.GetText()
-        if text_before != text_:
-            id_ = self._page.ctc_dict_inv[item_]
-            self.assembly.nodes[id_]['text'] = text_
-            print('Text changed to:', item_.GetText())
+        item = event.GetItem()
+        text = item.GetText()
+        if text_before != text:
+            id_ = self._page.ctc_dict_inv[item]
+            self.assembly.nodes[id_]['text'] = text
+            print('Text changed to:', item.GetText())
 
 
 
@@ -2814,7 +2842,7 @@ class MainWindow(wx.Frame):
 
 
 
-    def MakeNewAssembly(self, _name = None):
+    def MakeNewAssembly(self, name = None):
 
         self.Freeze()
         print('Trying to make new assembly')
@@ -2823,26 +2851,26 @@ class MainWindow(wx.Frame):
         ''' Create assembly object and add to assembly manager '''
         new_id, new_assembly = self._assembly_manager.new_assembly()
 
-        if _name is None:
+        if name is None:
             name_id = new_id
-            _name = 'Assembly ' + str(name_id)
+            name = 'Assembly ' + str(name_id)
             ''' Check name doesn't exist; create new name by increment if so '''
-            _names = [el.name for el in self._notebook_manager]
-            while _name in _names:
+            names = [el.name for el in self._notebook_manager]
+            while name in names:
                 print('Name already exists')
                 name_id += 1
-                _name = 'Assembly ' + str(name_id)
+                name = 'Assembly ' + str(name_id)
                 continue
-        _page = NotebookPanel(self._notebook, _name, new_id, border = self._border)
+        page = NotebookPanel(self._notebook, name, new_id, border = self._border)
 
-        self._notebook_manager[_page] = new_id
+        self._notebook_manager[page] = new_id
 
 
 
         ''' Add tab with select = True, so EVT_NOTEBOOK_PAGE_CHANGED fires
             and relevant assembly is activated via OnNotebookPageChanged '''
-        self._notebook.AddPage(_page, _name, select = True)
-        self._page = _page
+        self._notebook.AddPage(page, name, select = True)
+        self._page = page
 
 
 
@@ -2873,8 +2901,8 @@ class MainWindow(wx.Frame):
     @property
     def checked_nodes(self):
         page = self._page
-        _id = self._notebook_manager[page]
-        assembly = self._assembly_manager._mgr[_id]
+        # _id = self._notebook_manager[page]
+        # assembly = self._assembly_manager._mgr[_id]
 
         checked_items = []
 
@@ -2892,15 +2920,15 @@ class MainWindow(wx.Frame):
 
         ''' Get active assembly before notebook page is changed
             and pass to CallAfter '''
-        _selection = self._notebook.GetSelection()
+        selection = self._notebook.GetSelection()
         ''' If selection not found (b/c doesn't exist) then pass None '''
-        if _selection == wx.NOT_FOUND:
+        if selection == wx.NOT_FOUND:
             print('No previous page found')
-            _id_old = None
+            id_old = None
             checked_old = []
         else:
-            _page = self._notebook.GetPage(_selection)
-            _id_old = self._notebook_manager[_page]
+            page = self._notebook.GetPage(selection)
+            id_old = self._notebook_manager[page]
             if self.COMMON_SELECTOR_VIEW:
                 checked_old = self.checked_nodes
             else:
@@ -2908,37 +2936,37 @@ class MainWindow(wx.Frame):
 
         print('Checked nodes in old page: ', checked_old)
 
-        wx.CallAfter(self.OnNotebookPageChanged, _id_old, event, checked_old = checked_old)
+        wx.CallAfter(self.OnNotebookPageChanged, id_old, event, checked_old = checked_old)
         event.Skip()
 
 
 
-    def OnNotebookPageChanged(self, _id_old, event, checked_old = []):
+    def OnNotebookPageChanged(self, id_old, event, checked_old = []):
 
         print('Notebook page changed')
 
-        _selection = self._notebook.GetSelection()
-        print('Notebook tab index: ', _selection)
-        _page = self._notebook.GetPage(_selection)
-        print('Notebook tab name: ', _page.name)
+        selection = self._notebook.GetSelection()
+        print('Notebook tab index: ', selection)
+        page = self._notebook.GetPage(selection)
+        print('Notebook tab name: ', page.name)
 
-        _text = 'Active notebook tab: ' + self._notebook.GetPageText(_selection)
-        self.AddText(_text)
+        text = 'Active notebook tab: ' + self._notebook.GetPageText(selection)
+        self.AddText(text)
 
         ''' Activate window (here NotebookPanel) and assembly '''
-        _id = self._notebook_manager[_page]
+        _id = self._notebook_manager[page]
         self.assembly = self._assembly_manager._mgr[_id]
-        self._page = _page
+        self._page = page
         print('Assembly ID: ', _id)
 
         ''' Switch to activated assembly in lattive view '''
         if not self._page.file_open:
             self.DisplayLattice(called_by = 'OnNotebookPageChanged')
         else:
-            if not _id_old:
+            if not id_old:
                 to_deactivate = []
             else:
-                to_deactivate = [_id_old]
+                to_deactivate = [id_old]
             to_select = self.selected_items
 
             self._assembly_manager.update_colours_active(to_activate = [_id], to_deactivate = to_deactivate)
@@ -2954,7 +2982,7 @@ class MainWindow(wx.Frame):
         if self.COMMON_SELECTOR_VIEW:
             latt_nodes = []
             for node_old in checked_old:
-                latt_node = self._assembly_manager.get_master_node(_id_old, node_old)
+                latt_node = self._assembly_manager.get_master_node(id_old, node_old)
                 if latt_node:
                     latt_nodes.append(latt_node)
             print('Lattice IDs of checked nodes: ', latt_nodes)
