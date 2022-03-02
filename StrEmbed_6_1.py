@@ -317,16 +317,17 @@ class MySplitter(wx.SplitterWindow):
 
 
 class NotebookPanel(wx.Panel):
-    def __init__(self, parent, name, _id, border = 0, panel_style = None):
+    def __init__(self, parent, _id, border = 0, panel_style = None, name = None):
 
         super().__init__(parent = parent)
 
         self.name = name
         self._id = _id
-        if panel_style == None:
-            self.panel_style = wx.BORDER_SIMPLE
-        else:
+
+        if panel_style:
             self.panel_style = panel_style
+        else:
+            self.panel_style = wx.BORDER_SIMPLE
 
 
 
@@ -914,10 +915,10 @@ class MainWindow(wx.Frame):
 
 
     def OnRenameAssembly(self, event):
-        page = self._notebook.GetPage(self._notebook.GetSelection())
-        old_name = page.name
+        # page = self._notebook.GetPage(self._notebook.GetSelection())
+        old_name = self.assembly.assembly_name
 
-        new_name_okay= False
+        new_name_okay = False
         while not new_name_okay:
             new_name = self.UserInput(caption = 'Enter new assembly name', value = old_name)
             if old_name == new_name:
@@ -928,7 +929,8 @@ class MainWindow(wx.Frame):
                 new_name = new_name_corr
                 print('Special characters removed')
             ''' Check new name not in existing names (excluding current) '''
-            names = [el.name for el in self._notebook_manager]
+            # names = [el.name for el in self._notebook_manager]
+            names = [a.assembly_name for a in self._assembly_manager._mgr.values()]
             names.remove(old_name)
             if new_name not in names:
                 print('New name not in existing names')
@@ -941,8 +943,11 @@ class MainWindow(wx.Frame):
                 print('New name applied')
                 new_name_okay = True
 
-        page.name = new_name
+        ''' Set screen text for notebook page '''
+        # page.name = new_name
         self._notebook.SetPageText(self._notebook.GetSelection(), new_name)
+        ''' Also change assembly name '''
+        self.assembly.assembly_name = new_name
 
 
 
@@ -974,12 +979,10 @@ class MainWindow(wx.Frame):
 
 
 
-
+    ''' General file-open method; takes list of file extensions as argument
+        and can be used for specific file names ("starter", string)
+        or types ("ender", string or list) '''
     def GetFilename(self, dialog_text = "Open file", starter = None, ender = None):
-
-        ''' General file-open method; takes list of file extensions as argument
-            and can be used for specific file names ("starter", string)
-            or types ("ender", string or list) '''
 
         ''' Convert "ender" to list if only one element '''
         if isinstance(ender, str):
@@ -987,7 +990,7 @@ class MainWindow(wx.Frame):
 
         ''' Check that only one argument is present '''
         ''' Create text for file dialog '''
-        if starter is not None and ender is None:
+        if starter and ender:
             file_open_text = starter.upper() + " files (" + starter.lower() + "*)|" + starter.lower() + "*"
         elif starter is None and ender is not None:
             file_open_text = [el.upper() + " files (*." + el.lower() + ")|*." + el.lower() for el in ender]
@@ -1001,6 +1004,7 @@ class MainWindow(wx.Frame):
                                    wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         fileDialog.ShowModal()
         filename = fileDialog.GetPath()
+        print('Full path from file dialog: \n', filename)
         fileDialog.Destroy()
 
         ''' Return file name, ignoring rest of path '''
@@ -1011,7 +1015,8 @@ class MainWindow(wx.Frame):
     def OnFileOpen(self, event = None):
 
         ''' Get STEP filename '''
-        open_filename = self.GetFilename(ender = ["stp", "step"]).split("\\")[-1]
+        # open_filename = self.GetFilename(ender = ["stp", "step"]).split("\\")[-1]
+        open_filename = self.GetFilename(ender = ["stp", "step"])
 
         ''' Return if filename is empty, i.e. if user selects "cancel" in file-open dialog '''
         if not open_filename:
@@ -1024,7 +1029,7 @@ class MainWindow(wx.Frame):
         _page = self._notebook.GetPage(self._notebook.GetSelection())
         _id = self._notebook_manager[_page]
 
-        _page.filename_fullpath = open_filename
+        # _page.filename_fullpath = open_filename
 
         ''' Wipe existing assembly if one already loaded; replace with empty one '''
         if self._page.file_open:
@@ -1039,7 +1044,12 @@ class MainWindow(wx.Frame):
             self.assembly = _assembly
 
         ''' Load data, create nodes and edges, etc. '''
-        self.assembly.load_step(open_filename)
+        try:
+            self.assembly.load_step(open_filename)
+            print('File loaded')
+        except Exception as e:
+            print('Could not load file; returning...', e)
+            return
         self._assembly_manager.AddToLattice(_id)
 
         # ''' OCC 3D data returned here '''
@@ -1073,7 +1083,8 @@ class MainWindow(wx.Frame):
 
         ''' Display lattice and update 3D viewer '''
         self.DisplayLattice(set_pos = True, called_by = 'OnFileOpen')
-        self.Update3DView(self.selected_items)
+        # self.Update3DView(selected_items = self.selected_items)
+        self.Update3DView()
 
 
 
@@ -1237,46 +1248,98 @@ class MainWindow(wx.Frame):
 
 
 
-    ''' HR 19/05/21 Refreshed to work with new STEP parsing method '''
-    def Update3DView(self, items = None):
+    @property
+    def hidden_nodes(self):
+        _hidden_nodes = [node for node in self.nodes if self.nodes[node]['hide']]
+        return _hidden_nodes
 
-        # '''
-        # transparency = None:    shaded
-        # transparency = 1:       wireframe
-        # '''
-        # def display_shape(shape, c, transparency = None):
-        #     # shape = self.assembly.get_shape_with_position(shape_raw, loc)
-        #     self._page.occ_panel._display.DisplayShape(shape,
-        #                                                color = Quantity_Color(c.Red(),
-        #                                                                       c.Green(),
-        #                                                                       c.Blue(),
-        #                                                                       Quantity_TOC_RGB),
-        #                                                transparency = transparency)
 
+
+    ''' HR 19/05/21 Refreshed to work with new STEP parsing method
+        HR 01/03/22 Major rejig to improve logic '''
+    def Update3DView(self, selected_items = None, leaves = None, hidden_nodes = None, parts_only = True):
+
+        ''' Avoid calling some node lists if already known when called;
+            purpose of kwargs only to reduce size of sets and/or speed up look-up and set operations '''
+        if selected_items == None:
+            selected_items = self.selected_items
+        if leaves == None:
+            leaves = self.assembly.leaves
+        # if hidden_nodes == None:
+        #     hidden_nodes = self.hidden_nodes
+        if parts_only:
+            ''' Only consider shapes of leaf nodes, i.e. parts... '''
+            all_nodes = leaves
+        else:
+            ''' ...else consider sub-assemblies as well '''
+            all_nodes = [el for el in self.assembly.nodes]
+            if hasattr(self.assembly, 'head'):
+                head = self.assembly.head
+                if head in all_nodes:
+                    all_nodes.remove(head)
+
+        print('Selected items: ', selected_items)
+        print('All nodes: ', all_nodes)
+
+        ''' All selected parts, ASP '''
+        ASP = set(all_nodes) & set(selected_items)
+        print('ASP: ', ASP)
+        ''' All unselected parts, AUP '''
+        # AUP = set(all_nodes) & (set(all_nodes) - set(selected_items))
+        AUP = set(all_nodes) - set(selected_items)
+        print('AUP: ', AUP)
+        ''' All selected parts to show '''
+        ASS = []
+        for node in ASP:
+            node_dict = self.assembly.nodes[node]
+            if not node_dict['shape_loc'][0]:
+                continue
+            if 'hide' in node_dict:
+                if not node_dict['hide']:
+                    continue
+            ASS.append(node)
+        print('ASS: ', ASS)
+        ''' All unselected parts to show '''
+        AUS = []
+        for node in AUP:
+            node_dict = self.assembly.nodes[node]
+            if not node_dict['shape_loc'][0]:
+                continue
+            if 'hide' in node_dict:
+                if not node_dict['hide']:
+                    continue
+            AUS.append(node)
+        print('AUS: ', AUS)
+
+
+        ''' Clear 3D view completely '''
         self._page.occ_panel._display.EraseAll()
 
-        ''' Get all selected items that are not sub-shapes; transparent/wireframe if not '''
-        selected_items = self.selected_items
-        # to_display = [el for el in self.assembly.nodes if not self.assembly.nodes[el]['is_subshape']]
+        # for node in self.assembly.nodes:
+        #     ''' HR 29/10/21 Do not display if "hide" is true '''
+        #     if 'hide' in self.assembly.nodes[node]:
+        #         if self.assembly.nodes[node]['hide']:
+        #             print('Item ', node, 'hidden')
+        #             continue
+        #     try:
+        #         shape, c = self.assembly.nodes[node]['shape_loc']
+        #     except:
+        #         shape, c = None, None
+        #     ''' Don't display assemblies, i.e. nodes without shapes '''
+        #     if not shape:
+        #         continue
+        #     if node in selected_items:
+        #         self.display_shape(node, shape, c)
+        #     else:
+        #         self.display_shape(node, shape, c, transparency = 1)
+        #     # print('Displaying node ', item)
 
-        # for item in to_display:
-        for ID in self.assembly.nodes:
-            ''' HR 29/10/21 Do not display if "hide" is true '''
-            if 'hide' in self.assembly.nodes[ID]:
-                if self.assembly.nodes[ID]['hide']:
-                    continue
-            try:
-                shape, c = self.assembly.nodes[ID]['shape_loc']
-            except:
-                shape, c = None, None
-            ''' Don't display assemblies, i.e. nodes without shapes '''
-            if not shape:
-                continue
-            if ID in selected_items:
-                self.display_shape(ID, shape, c)
-            else:
-                self.display_shape(ID, shape, c, transparency = 1)
-            # print('Displaying node ', item)
+        for node in ASS:
+            shape, c = shape, c = self.assembly.nodes[node]['shape_loc']
+            self.display_shape(node, shape, c)
+        for node in AUS:
+            shape, c = shape, c = self.assembly.nodes[node]['shape_loc']
+            self.display_shape(node, shape, c, transparency = 1)
 
         self._page.occ_panel._display.View.FitAll()
         self._page.occ_panel._display.View.ZFitAll()
@@ -1468,8 +1531,7 @@ class MainWindow(wx.Frame):
 
 
 
-    ''' HR 01/12/21 New method to erase shape individually
-                    to avoid full erase and redraw
+    ''' HR 01/12/21 New method to erase shape individually to avoid full erase and redraw
                     Adapted from PythonOCC example here:
                     https://github.com/tpaviot/pythonocc-demos/blob/master/examples/core_display_erase_shape.py '''
     def erase_shape(self, ID):
@@ -1492,7 +1554,7 @@ class MainWindow(wx.Frame):
             as already changed within event-emitting view
             i.e.    EX_PARTS = node(s) already changed in parts view
                     EX_SELECTOR = node already changed in selector view (can only be one) '''
-    def update_GUI(self, OS, NS, TS, TU, called_by = None, **kwargs):
+    def update_GUI(self, OS, NS, TS, TU, called_by = None, parts_only = True, **kwargs):
 
         print('\nRunning "update_GUI"')
         if called_by:
@@ -1505,12 +1567,23 @@ class MainWindow(wx.Frame):
 
         # self._page.occ_panel._display.EraseAll()
 
-        for ID in TS | TU:
+        if 'leaves' in kwargs:
+            leaves = kwargs['leaves']
+        else:
+            leaves = self.assembly.leaves
+
+        to_update = TS | TU
+        print(' Nodes before...', to_update)
+        if parts_only:
+            to_update = set(leaves) & to_update
+            print(' Nodes after...', to_update)
+
+        for ID in to_update:
             node_dict = self.assembly.nodes[ID]
-            # ''' HR 29/10/21 Do not display if "hide" is true '''
-            # if 'hide' in node_dict:
-            #     if node_dict['hide']:
-            #         continue
+            ''' HR 29/10/21 Do not display if "hide" is true '''
+            if 'hide' in node_dict:
+                if node_dict['hide']:
+                    continue
             try:
                 shape, c = node_dict['shape_loc']
             except:
@@ -2463,15 +2536,12 @@ class MainWindow(wx.Frame):
         if not selected_items:
             print('No items selected')
             return
-
-        ''' Further checks '''
-        if len(selected_items) >= 1:
-            print('Selected item(s) to remove:\n')
-            for node in selected_items:
-                print('ID = ', node)
-        else:
-            print('Cannot remove: no items selected\n')
+        elif len(selected_items) > 1:
+            print('Cannot hide/uhide: more than one node selected\n')
             return
+
+        node = selected_items[0]
+        print('ID of selected item to hide/unhide: \n', node)
 
         ''' Create/toggle hide mode of node '''
         node_dict = self.assembly.nodes[selected_items[0]]
@@ -2483,8 +2553,17 @@ class MainWindow(wx.Frame):
                 print('Hide tag present, setting to false')
                 node_dict['hide'] = False
             else:
-                print('Hide tag present, setting to false')
+                print('Hide tag present, setting to true')
                 node_dict['hide'] = True
+
+        ''' Grey out/ungrey in parts view '''
+        ctc_item = self._page.ctc_dict[node]
+        if node_dict['hide']:
+            colour = wx.Colour('GREY')
+        else:
+            colour = wx.Colour('BLACK')
+        ctc_attr = ctc.TreeItemAttr(colText = colour)
+        ctc_item.SetAttributes(ctc_attr)
 
         self.Update3DView()
 
@@ -2842,6 +2921,20 @@ class MainWindow(wx.Frame):
 
 
 
+    def get_new_assembly_name(self, new_id):
+        name = 'Assembly ' + str(new_id)
+        ''' Check name doesn't exist; create new name by increment if so '''
+        names = [a.assembly_name for a in self._assembly_manager._mgr.values()]
+        names.remove(name)
+        while name in names:
+            print('Name already exists')
+            new_id += 1
+            name = 'Assembly ' + str(new_id)
+            continue
+        return name
+
+
+
     def MakeNewAssembly(self, name = None):
 
         self.Freeze()
@@ -2851,25 +2944,19 @@ class MainWindow(wx.Frame):
         ''' Create assembly object and add to assembly manager '''
         new_id, new_assembly = self._assembly_manager.new_assembly()
 
-        if name is None:
-            name_id = new_id
-            name = 'Assembly ' + str(name_id)
-            ''' Check name doesn't exist; create new name by increment if so '''
-            names = [el.name for el in self._notebook_manager]
-            while name in names:
-                print('Name already exists')
-                name_id += 1
-                name = 'Assembly ' + str(name_id)
-                continue
-        page = NotebookPanel(self._notebook, name, new_id, border = self._border)
+        name = self.get_new_assembly_name(new_id)
+
+        page = NotebookPanel(self._notebook, new_id, border = self._border)
 
         self._notebook_manager[page] = new_id
 
 
 
         ''' Add tab with select = True, so EVT_NOTEBOOK_PAGE_CHANGED fires
-            and relevant assembly is activated via OnNotebookPageChanged '''
-        self._notebook.AddPage(page, name, select = True)
+            and relevant assembly is activated via OnNotebookPageChanged;
+            "text = name" equivalent to SetPageText if done later
+            e.g. in RenameAssembly '''
+        self._notebook.AddPage(page, text = name, select = True)
         self._page = page
 
 
@@ -2890,8 +2977,6 @@ class MainWindow(wx.Frame):
 
         ''' Disable until file loaded '''
         self._page.Disable()
-
-
 
         self.Thaw()
 

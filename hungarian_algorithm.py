@@ -68,41 +68,41 @@ def scores_to_array(scores, default = -1.0):
     return l1,l2,arr
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
         
-    # ''' Example 1 '''
-    # arr = np.array([[4, 1, 3], [2, 0, 5], [3, 2, 2]])
-    # best = get_optimal_values(arr)[2]
-    # print('Optimal sum = ', best)
+#     # ''' Example 1 '''
+#     # arr = np.array([[4, 1, 3], [2, 0, 5], [3, 2, 2]])
+#     # best = get_optimal_values(arr)[2]
+#     # print('Optimal sum = ', best)
     
-    # ''' Example 2 '''
-    # arr = np.random.rand(100,100)
-    # best = get_optimal_values(arr)[2]
-    # print('Optimal sum = ', best)
+#     # ''' Example 2 '''
+#     # arr = np.random.rand(100,100)
+#     # best = get_optimal_values(arr)[2]
+#     # print('Optimal sum = ', best)
     
-    # ''' Example 3 '''
-    # for i in ('a1', 'a2', 'a3'):
-    #     for j in ('b1', 'b2', 'b3'):
-    #         scores[(j,i)] = random.random()
+#     # ''' Example 3 '''
+#     # for i in ('a1', 'a2', 'a3'):
+#     #     for j in ('b1', 'b2', 'b3'):
+#     #         scores[(j,i)] = random.random()
     
-    ''' Example 4 '''
-    labels = ('a_','b_')
-    n = 5
-    m = 10
-    scores = {}
+#     ''' Example 4 '''
+#     labels = ('a_','b_')
+#     n = 5
+#     m = 10
+#     scores = {}
     
-    for i in range(n):
-        for j in range(m):
-            k = (labels[1] + str(j+1), labels[0] + str(i+1))
-            scores[k] = random.random()
+#     for i in range(n):
+#         for j in range(m):
+#             k = (labels[1] + str(j+1), labels[0] + str(i+1))
+#             scores[k] = random.random()
     
-    l1,l2,arr = scores_to_array(scores)
-    opts = get_optimal_values(arr)
+#     l1,l2,arr = scores_to_array(scores)
+#     opts = get_optimal_values(arr)
     
-    opts_ind = list(zip(opts[0],opts[1]))
+#     opts_ind = list(zip(opts[0],opts[1]))
     
-    pairs = []
-    for ind in opts_ind:
-        pair = (l2[ind[1]],l1[ind[0]])
-        pairs.append(pair)
-        print(pair)
+#     pairs = []
+#     for ind in opts_ind:
+#         pair = (l2[ind[1]],l1[ind[0]])
+#         pairs.append(pair)
+#         print(pair)

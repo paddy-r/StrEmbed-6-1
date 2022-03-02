@@ -63,8 +63,8 @@ import matplotlib as mpl
 #TH: useful for working with files
 import os
 
-# ''' For data exchange export '''
-# import xlsxwriter
+''' For data exchange export '''
+import xlsxwriter
 
 # HR 10/7/20 All python-occ imports for 3D viewer
 # from OCC.Core.TopoDS import TopoDS_Shape
@@ -86,7 +86,7 @@ from OCC.Core.XCAFDoc import (XCAFDoc_DocumentTool_ShapeTool,
 from OCC.Core.STEPCAFControl import STEPCAFControl_Reader
 from OCC.Core.TDF import TDF_LabelSequence, TDF_Label
 from OCC.Core.TCollection import TCollection_ExtendedString
-from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
+# from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
 from OCC.Core.TopLoc import TopLoc_Location
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
 
@@ -94,7 +94,7 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
                                       # list_of_shapes_to_compound)
 
 from OCC.Display import OCCViewer
-from OCC.Core.Quantity import (Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB)
+from OCC.Core.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB
 from OCC.Extend import DataExchange
 from OCC.Core.Graphic3d import Graphic3d_BufferType
 
@@ -239,7 +239,7 @@ def get_bb_score(ar1, ar2):
     r3 = geo_abs(ar1[2], ar2[2])
     score = (r1+r2+r3)/3
 
-    print('Score: ', score)
+    # print('Score: ', score)
     return score
 
 
@@ -329,12 +329,16 @@ class AssemblyManager():
         self.MATCHING_TEXT_SUFFIXES_DEFAULT = ('.STEP', '.STP', '.step', 'stp')
         self.MATCHING_TEXT_TOL_DEFAULT = 5e-2
         ''' ----------------------------- '''
+        
+        self.SAVE_PATH_DEFAULT = os.getcwd()
 
         # self.new_assembly_text = 'Unnamed item'
         # self.new_part_text     = 'Unnamed item'
 
         self.ENFORCE_BINARY_DEFAULT = False
         self.DO_ALL_LATTICE_LINES = True
+
+        self.NODE_NAME_OUTPUT_FIELD_DEFAULT = 'screen_name'
 
         '''
             Set up lattice plot viewer
@@ -389,6 +393,16 @@ class AssemblyManager():
             self.assembly_id_counter = 0
         self.assembly_id_counter += 1
         return self.assembly_id_counter
+
+
+
+    # @property
+    # def get_assembly_name(self):
+    #     if not hasattr(self, '_assembly_name'):
+    #         name = 'Assembly ' + str(self.assembly_id)
+    #         names = [el._assembly_name for el in self._mgr]
+    #         self._assembly_name = name
+    #     return self._assembly_name
 
 
 
@@ -1152,7 +1166,7 @@ class AssemblyManager():
         ''' Initiate node sets/lists '''
         mu = set()
         # nu = set()
-        tau = set()
+        # tau = set()
 
         mu1 = []
         mu2 = []
@@ -1181,7 +1195,7 @@ class AssemblyManager():
 
             ''' Set up matching sub-stage '''
             matches = set()
-            non_matches = set()
+            # non_matches = set()
 
             ''' Grab all matching sub-stage information and do matching '''
             matching_method, matching_kwargs = stage[1]
@@ -1196,15 +1210,17 @@ class AssemblyManager():
                           '\n with assembly IDs ', id1, id2,
                           '\n in block with node lists ', block_v[0], block_v[1],
                           '\n and kwargs: ', matching_kwargs)
-                    matches_in_block , non_matches_in_block = matching_method(id1, id2, block_v[0], block_v[1], **matching_kwargs)
-
-                    print('Matches in block {} of {} and stage {} of {}:\n'.format(
-                        j+1, len(blocks), i+1, len(stages)), matches_in_block)
-
-                    ''' Update set of matches within current stage '''
-                    print('Matches: ', matches)
-                    print('Matches in block: ', matches_in_block)
-                    matches = matches | set(matches_in_block)
+                    if block_v[0] and block_v[1]:
+                        matches_in_block , non_matches_in_block = matching_method(id1, id2, block_v[0], block_v[1], **matching_kwargs)
+                        print('Matches in block {} of {} and stage {} of {}:\n'.format(
+                            j+1, len(blocks), i+1, len(stages)), matches_in_block)
+    
+                        ''' Update set of matches within current stage '''
+                        print('Matches: ', matches)
+                        print('Matches in block: ', matches_in_block)
+                        matches = matches | set(matches_in_block)
+                    else:
+                        print('No nodes found in one half of block; not proceeding with matching...')
 
             ''' Add to master set/lists of matches and unmatches '''
             print('Matches: ', matches)
@@ -1287,13 +1303,13 @@ class AssemblyManager():
             if not text:
                 print('No name found at node ', n1)
                 continue
-            print('Name found at node ', n1)
+            # print('Name found at node ', n1)
             ''' Remove suffixes '''
             if suffixes:
-                print(' TEXT: ', text)
+                # print(' TEXT: ', text)
                 text = remove_suffixes(text, suffixes = suffixes)
             if text in groups:
-                print('Adding to existing group (exact match)')
+                # print('Adding to existing group (exact match)')
                 groups[text][0].append(n1)
                 continue
             for k in groups.keys():
@@ -1301,7 +1317,7 @@ class AssemblyManager():
                 sim = 1 - lev_dist/max(len(text), len(k))
 
                 if sim > 1-text_tol:
-                    print('Adding to existing group (inexact match), score = ', sim)
+                    # print('Adding to existing group (inexact match), score = ', sim)
                     groups[k][0].append(n1)
                     grouped = True
                     break
@@ -1314,7 +1330,7 @@ class AssemblyManager():
         for n2 in nodes2:
             text = a2.nodes[n2][field]
             if not text:
-                print('No name found at node ', n2)
+                # print('No name found at node ', n2)
                 continue
             print('Name found at node ', n2)
             ''' Remove suffixes '''
@@ -1375,18 +1391,18 @@ class AssemblyManager():
             # bb_sum = np.sum(get_aspect_ratios(shape, tol = bb_tol))
             bb_ar = self.get_ar(id1, n1)
             if bb_ar:
-                print('Retrieved AR, trying to group...')
+                # print('Retrieved AR, trying to group...')
                 bb_sum = np.sum(bb_ar)
             else:
-                print('Retrieved None as AR; skipping...')
+                # print('Retrieved None as AR; skipping...')
                 continue
             if bb_sum in groups:
-                print('Adding to existing group (exact match)')
+                # print('Adding to existing group (exact match)')
                 groups[bb_sum][0].append(n1)
                 continue
             for k in groups.keys():
                 if np.isclose(k, bb_sum, rtol = group_tol):
-                    print('Adding to existing group (inexact match)')
+                    # print('Adding to existing group (inexact match)')
                     groups[bb_sum][0].append(n1)
                     grouped = True
                     break
@@ -1394,7 +1410,7 @@ class AssemblyManager():
             if grouped:
                 grouped = False
                 continue
-            print('Creating new group')
+            # print('Creating new group')
             groups[bb_sum] = ([n1], [])
 
         for n2 in nodes2:
@@ -1406,18 +1422,18 @@ class AssemblyManager():
             # bb_sum = np.sum(get_aspect_ratios(shape, tol = bb_tol))
             bb_ar = self.get_ar(id2, n2)
             if bb_ar:
-                print('Retrieved AR, trying to group...')
+                # print('Retrieved AR, trying to group...')
                 bb_sum = np.sum(bb_ar)
             else:
-                print('Retrieved None as AR; skipping...')
+                # print('Retrieved None as AR; skipping...')
                 continue
             if bb_sum in groups:
-                print('Adding to existing group (exact match)')
+                # print('Adding to existing group (exact match)')
                 groups[bb_sum][1].append(n2)
                 continue
             for k in groups.keys():
                 if np.isclose(k, bb_sum, rtol = group_tol):
-                    print('Adding to existing group (inexact match)')
+                    # print('Adding to existing group (inexact match)')
                     groups[k][1].append(n2)
                     grouped = True
                     break
@@ -1425,7 +1441,7 @@ class AssemblyManager():
             if grouped:
                 grouped = False
                 continue
-            print('Creating new group')
+            # print('Creating new group')
             groups[bb_sum] = ([], [n2])
 
         return groups
@@ -1456,7 +1472,7 @@ class AssemblyManager():
             sim_name = self.similarity_strings(id1, id2, node1, node2, field = field)[1]
         else:
             sim_name = 0
-        print('Name sim: ', sim_name)
+        # print('Name sim: ', sim_name)
 
         ''' Get local assembly structure-based score '''
         if weights[1] > 0:
@@ -1464,21 +1480,21 @@ class AssemblyManager():
             # sim_str = sum(x*y for x,y in zip(sims, structure_weights))/sum(structure_weights)
         else:
             sim_str = 0
-        print('Struct sim: ', sim_str)
+        # print('Struct sim: ', sim_str)
 
         ''' Get BB-based score '''
         if weights[2] > 0:
             sim_bb = self.similarity_bb(id1, id2, node1, node2)
         else:
             sim_bb = 0
-        print('BB sim: ', sim_bb)
+        # print('BB sim: ', sim_bb)
 
         ''' Get shape-based score '''
         if weights[3] > 0:
             sim_sh = self.similarity_shape(id1, id2, node1, node2)
         else:
             sim_sh = 0
-        print('Shape sim: ', sim_sh)
+        # print('Shape sim: ', sim_sh)
 
         sims = (sim_name, sim_str, sim_bb, sim_sh)
         sim_total = sum([s*w for s,w in zip(sims,weights)])/sum(weights)
@@ -1660,46 +1676,48 @@ class AssemblyManager():
 
 
     ''' HR 31/01/22 To automate/abstract all AR retrieval '''
-    def get_ar(self, assembly_id, node, field = None):
+    def get_ar(self, assembly_id, node, field = None, save_path = None):
 
         ''' Check for/set defaults '''
         if not field:
             field = self.MATCHING_FIELD_DEFAULT
+        if not save_path:
+            save_path = self.SAVE_PATH_DEFAULT
 
         assembly = self._mgr[assembly_id]
         node_dict = assembly.nodes[node]
         name = node_dict[field]
         if not name:
-            print('No name found; returning None')
+            # print('No name found; returning None')
             return None
         folder = remove_suffixes(assembly.step_filename)
-        print('Folder, name: ', folder, name)
+        # print('Folder, name: ', folder, name)
 
-        file = os.path.join(os.getcwd(), folder, name)
-        print('File:\n ', file)
+        file = os.path.join(save_path, folder, name)
+        # print('File:\n ', file)
 
         arfile = file + '.ar'
 
         ''' Create pickled ARs if not already present '''
         if not os.path.isfile(arfile):
-            print('Pickled aspect ratio (AR) data not found; getting shape and computing ARs from bounding box (BB)...')
-            print('Retrieving shape...\n ')
+            # print('Pickled aspect ratio (AR) data not found; getting shape and computing ARs from bounding box (BB)...')
+            # print('Retrieving shape...\n ')
             shape = node_dict['shape_loc'][0]
             if not shape:
-                print('Shape not found; returning None')
+                # print('Shape not found; returning None')
                 return None
             ''' Create folder if not present '''
             if not os.path.isdir(folder):
-                print('Folder not present; creating...')
+                # print('Folder not present; creating...')
                 os.mkdir(folder)
-            print('Computing and pickling AR data...\n ', arfile)
+            # print('Computing and pickling AR data...\n ', arfile)
             ar = get_aspect_ratios(shape)
             ar_writer = open(arfile,"wb")
             pickle.dump(ar, ar_writer)
             ar_writer.close()
 
         ''' Load pickled BB data '''
-        print('Opening pickled BB data...\n ', arfile)
+        # print('Opening pickled BB data...\n ', arfile)
         ar_loader = open(arfile,"rb")
         ar = pickle.load(ar_loader)
 
@@ -1736,19 +1754,23 @@ class AssemblyManager():
 
 
 
-    ''' HR 31/01/22 To automate/abstract all AR retrieval '''
-    def get_shape_thing(self, assembly_id, node, field = None):
+    ''' HR 31/01/22 To automate/abstract all shape-thing retrieval,
+        where a shape thing is shape representation used in PartFind
+        (graph in older PF versions, vector in newer versions) '''
+    def get_shape_thing(self, assembly_id, node, field = None, save_path = None):
 
         ''' Check for/set defaults '''
         if not field:
             field = self.MATCHING_FIELD_DEFAULT
+        if not save_path:
+            save_path = self.SAVE_PATH_DEFAULT
 
         assembly = self._mgr[assembly_id]
         node_dict = assembly.nodes[node]
         name = node_dict[field]
         folder = remove_suffixes(assembly.step_filename)
 
-        file = os.path.join(os.getcwd(), folder, name)
+        file = os.path.join(save_path, folder, name)
         print('File:\n ', file)
 
         pickle_file = file + '.pickle'
@@ -2640,84 +2662,160 @@ class AssemblyManager():
 
 
 
+    ''' HR 22/02/22 Top grab list of node info for export etc. '''
+    def get_node_info(self, _id, nodes = None, indent = True):
+
+        ''' Default to all nodes if none specified;
+            Only specified nodes added to dict 
+            but whole graph must be traversed anyway '''
+        assembly = self._mgr[_id]
+        if not nodes:
+            nodes = assembly.nodes
+
+        ''' Initialise dict '''
+        node_info = {}
+        level = [0]
+
+        ''' Function called for each node '''
+        def get_children(node):
+            children = assembly.successors(node)
+            level[0] += 1
+            for child in children:
+                if child in nodes:
+                    parent = assembly.get_parent(child)
+                    text = str(assembly.nodes[child]['occ_name'])
+                    ''' Add tree-like indentation if "indent" true '''
+                    if indent:
+                        # if level[0]>0:
+                        #     p_level = node_info[parent][1]
+                        #     text = p_level*'  ' + '|' + (level[0] - p_level)*'__' + text
+                        text = (level[0]-1)*'   ' + '|__' + text
+                    data = (text, level[0], parent)
+                    # print(data)
+                    node_info[child] = data
+                ''' Recurse '''
+                get_children(child)
+            level[0] -= 1
+
+        ''' Starts here: get head info then traverse graph recursively '''
+        head = assembly.head
+        if head in nodes:
+            data = ('Head node (no name)', level[0], 'None')
+            # print(data)
+            node_info[head] = data
+        get_children(head)
+
+        return node_info
+
+
+
     ''' HR June 21 Method removed from StrEmbed
         Dumps all basic project/lattice, assembly and node info:
             Node ID, label/text, parent
         Keep for now, can reuse for larger "save" functionality later '''
-    # ''' HR 25/02/21
-    #     Basic XLSX output for whole lattice (i.e. all assemblies) '''
-    # def xlsx_write(self, _ids = None):
+    ''' HR 25/02/21
+        Basic XLSX output for whole lattice (i.e. all assemblies) '''
+    def xlsx_write(self, _ids = None, name_field = None, save_file = None, indent = True):
 
-    #     def get_header(_id, page):
-    #         mgr = self._assembly_manager._mgr
-    #         header = []
-    #         header.append(mgr[_id].assembly_id)
-    #         header.append(page.name)
-    #         header.append(page.filename_fullpath)
-    #         return header
+        save_file_default = os.path.join(os.getcwd(), 'project.xlsx')
 
-    #     def get_output_data(_id, node):
-    #         ass = self._assembly_manager._mgr[_id]
-    #         data = []
-    #         data.append(node)
-    #         try:
-    #             data.append(ass.nodes[node]['label'])
-    #         except:
-    #             data.append('')
-    #         try:
-    #             data.append(ass.nodes[node]['text'])
-    #         except:
-    #             data.append('')
-    #         try:
-    #             data.append(ass.get_parent(node))
-    #         except:
-    #             data.append('None (root)')
-    #         return data
+        if not save_file:
+            save_file = save_file_default
 
-    #     header_fields = ['Assembly ID', 'Assembly name', 'STP/STEP file']
-    #     y_offset = len(header_fields) + 2
+        try:
+            print('Trying to create Excel file at...')
+            print(save_file)
+            workbook = xlsxwriter.Workbook(save_file)
+            print('Done')
+        except:
+            print('...could not create Excel file; creating default file name')
+            save_file = save_file_default
+            try:
+                workbook = xlsxwriter.Workbook(save_file)
+            except:
+                print('Could not create Excel file; returning False...')
+                return False
 
-    #     fields = ['Node ID', 'Label', 'Text', 'Parent ID', ]
+        ''' Get all assembly IDs if none specified '''
+        if not _ids:
+            _ids = [el for el in self._mgr]
 
-    #     save_file = 'torch_project.xlsx'
+        if not name_field:
+            name_field = self.NODE_NAME_OUTPUT_FIELD_DEFAULT
 
-    #     excel_file = os.getcwd() + '\\' + save_file
-    #     workbook = xlsxwriter.Workbook(excel_file)
+        def get_header(_id):
+            assembly = self._mgr[_id]
+            header = []
+            header.append(assembly.assembly_id)
+            if hasattr(assembly, 'assembly_name'):
+                header.append(assembly.assembly_name)
+            else:
+                header.append('-')
+            if hasattr(assembly, 'step_filename'):
+                header.append(assembly.step_filename)
+            else:
+                header.append(-'No STEP filename')
+            return header
 
-    #     '''Export all assemblies if none specified '''
-    #     if not _ids:
-    #         _ids = [el for el in self._assembly_manager._mgr]
+        ''' Create summary sheet '''
+        sheet_dict = {}
+        sheet_dict['summary'] = workbook.add_worksheet('Summary')
+        summary_fields = ['Assembly ID', 'Assembly name', 'STP/STEP file', 'Sheet number']
+        for i,el in enumerate(summary_fields):
+            sheet_dict['summary'].write(0, i, el)
+        ''' Dump summary of all assemblies to summary sheet '''
+        for i,_id in enumerate(_ids):
+            assembly = self._mgr[_id]
+            assembly_name = assembly.assembly_name
+            step_file = assembly.step_filename
+            sheet_number = i+2
+            assembly_data = [_id, assembly_name, step_file, sheet_number]
+            for j,el in enumerate(assembly_data):
+                x = j
+                y = i+1
+                sheet_dict['summary'].write(y, x, el)
 
-    #     ''' Create worksheet for each assembly to be exported '''
-    #     sheet_dict = {}
-    #     for _id in _ids:
-    #         sheet_dict[_id] = workbook.add_worksheet()
-    #         page = [k for k,v in self._notebook_manager.items() if v == _id][0]
+        ''' Set up formatting of headers '''
+        header_fields = ['Assembly ID', 'Assembly name', 'STP/STEP file']
+        y_offset = len(header_fields) + 2
+        fields = ['Node ID', 'Name', 'Level', 'Parent ID', ]
 
-    #         ''' Write main header... '''
-    #         header_data = get_header(_id, page)
-    #         for i,el in enumerate(header_fields):
-    #             sheet_dict[_id].write(i, 0, el)
-    #             sheet_dict[_id].write(i, 1, header_data[i])
+        ''' Create worksheet for each assembly to be exported '''
+        for j,_id in enumerate(_ids):
+            assembly = self._mgr[_id]
+            # assembly_name = assembly.assembly_name
+            # sheet_name = str(assembly_name)
+            # # sheet_name = re.sub('[^a-zA-Z0-9 \n\.]', '', my_str)
+            ''' Write main header... '''
+            # sheet_dict[_id] = workbook.add_worksheet(sheet_name)
+            sheet_dict[_id] = workbook.add_worksheet()
+            header_data = get_header(_id)
+            for i,el in enumerate(header_fields):
+                sheet_dict[_id].write(i, 0, el)
+                sheet_dict[_id].write(i, 1, header_data[i])
 
-    #         ''' ...and node fields header '''
-    #         for i,el in enumerate(fields):
-    #             sheet_dict[_id].write(y_offset-1,i,el)
+            ''' ...and node fields header '''
+            for i,el in enumerate(fields):
+                sheet_dict[_id].write(y_offset-1,i,el)
 
-    #         ''' Get all nodes still present in CTC '''
-    #         nodes = list(page.ctc_dict)
+            node_info = self.get_node_info(_id, indent = indent)
 
-    #         counter = 0
-    #         for node in nodes:
-    #             data = get_output_data(_id, node)
-    #             for i,el in enumerate(data):
-    #                 x = i
-    #                 y = counter + y_offset
-    #                 sheet_dict[_id].write(y, x, data[i])
-    #             counter += 1
+            counter = 0
+            for node in assembly:
+                node_data = [node]
+                node_data.extend([el for el in node_info[node]])
+                print(node_data)
+                for i,el in enumerate(node_data):
+                    x = i
+                    y = counter + y_offset
+                    sheet_dict[_id].write(y, x, el)
+                counter += 1
 
-    #     workbook.close()
-
+        try:
+            workbook.close()
+            return True
+        except:
+            print('Could not close Excel file; returning False...')
 
 
 
@@ -2736,11 +2834,18 @@ class StepParse(nx.DiGraph):
         # self.topo_types = (TopoDS_Solid,)
 
         self.assembly_id = assembly_id
+        if 'assembly_name' in kwargs:
+            self.assembly_name = kwargs['assembly_name']
+        else:
+            self.assembly_name = 'Assembly ' + str(self.assembly_id)
         # self.OCC_dict = {}
 
         self.default_label_part = 'Unnamed item'
         self.default_label_ass = 'Unnamed item'
-        self.head_name = '== PROJECT =='
+        if 'head_name_default' in kwargs:
+            self.HEAD_NAME_DEFAULt = kwargs['head_name_default']
+        else:
+            self.HEAD_NAME_DEFAULT = '** PROJECT **'
 
         ''' Mid-grey for default shape colour '''
         self.SHAPE_COLOUR_DEFAULT = Quantity_Color(0.5, 0.5, 0.5, Quantity_TOC_RGB)
@@ -2856,7 +2961,7 @@ class StepParse(nx.DiGraph):
         def get_product_name(line):
             ''' First strip off basic extraneous stuff; this should work universally '''
             line_corr = line.split("PRODUCT")[1].strip().rstrip(";").lstrip("(").strip().split("#")[0].strip().rstrip("(").strip().strip(",").strip()
-            print('Stripped back text, first stage: ', line_corr)
+            # print('Stripped back text, first stage: ', line_corr)
             ''' Next, deal with remaining rightmost field
             #     Fine for all case studies so far, but might not be universal solution; would need to deal with text in field, if present
             #     Note: Currently yields wrong name if text present in rightmost field '''
@@ -2865,41 +2970,41 @@ class StepParse(nx.DiGraph):
                 Rewritten to allow for text in third field
                 Still assumes no commas in third field, but improvement on previous '''
             line_corr = ','.join(line_corr.split(",")[:-1])
-            print('Stripped back text, second stage: ', line_corr)
+            # print('Stripped back text, second stage: ', line_corr)
 
             chunks = line_corr.split(",")
-            print('Chunks by comma: ', chunks)
+            # print('Chunks by comma: ', chunks)
 
             l = len(chunks)
-            print('Length: ', l)
+            # print('Length: ', l)
 
             if l == 2:
                 ''' If only two chunks, first chunk must be name, even if two empty chunks '''
                 name = chunks[0]
-                print("Length = 2, name is first chunk: ", name)
+                # print("Length = 2, name is first chunk: ", name)
 
             else:
                 if (l % 2) != 0:
                     ''' If l > 2 and odd, last chunk must be empty => name is all chunks except last '''
                     name = ''.join(chunks[:-1])
-                    print("Length = ", l, " and odd, name is all chunks except last: ", name)
+                    # print("Length = ", l, " and odd, name is all chunks except last: ", name)
                 else:
                     ''' Last remaining case is that l > 2 and even, for which two possible outcomes '''
                     lh = int(l/2)
-                    print('Half length = ', lh)
+                    # print('Half length = ', lh)
                     ''' Chop text into two halves '''
                     half1 = ','.join(chunks[0:lh]).strip()
                     half2 = ','.join(chunks[lh:]).strip()
-                    print('Half 1: ', half1)
-                    print('Half 2: ', half2)
+                    # print('Half 1: ', half1)
+                    # print('Half 2: ', half2)
                     if half1 == half2:
                         ''' Outcome 1: Both halves the same, i.e. name repeated in two fields '''
                         name = half1
-                        print("Length > 2 and even and halves match, name is first half: ", name)
+                        # print("Length > 2 and even and halves match, name is first half: ", name)
                     else:
                         ''' Outcome 2: Second field empty => name is all chunks except last '''
                         name = ','.join(chunks[:-1])
-                        print("Length > 2 and even and halves do NOT match, name is all chunks except last: ", name)
+                        # print("Length > 2 and even and halves do NOT match, name is all chunks except last: ", name)
 
             ''' HR 01/11/21 Workaround for problem of multiple apostropges being reduced to single one in OCC
                 Address unresolved OCC bug 32421: https://tracker.dev.opencascade.org/view.php?id=32421
@@ -2934,6 +3039,300 @@ class StepParse(nx.DiGraph):
 
 
 
+    # def load_step(self, filename, get_subshapes = False):
+    #     ''' HR 11/05/21 Adapted from "read_step_file_with_names_colors"
+    #         in OCC.Extend.DataExchange here:
+    #         https://github.com/tpaviot/pythonocc-core/blob/master/src/Extend/DataExchange.py '''
+    #     ##Copyright 2018 Thomas Paviot (tpaviot@gmail.com)
+    #     ##
+    #     ##This file is part of pythonOCC.
+    #     ##
+    #     ##pythonOCC is free software: you can redistribute it and/or modify
+    #     ##it under the terms of the GNU Lesser General Public License as published by
+    #     ##the Free Software Foundation, either version 3 of the License, or
+    #     ##(at your option) any later version.
+    #     ##
+    #     ##pythonOCC is distributed in the hope that it will be useful,
+    #     ##but WITHOUT ANY WARRANTY; without even the implied warranty of
+    #     ##MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    #     ##GNU Lesser General Public License for more details.
+    #     ##
+    #     ##You should have received a copy of the GNU Lesser General Public License
+    #     ##along with pythonOCC.  If not, see <http://www.gnu.org/licenses/>.
+    #     """ Returns list of tuples (topods_shape, label, color)
+    #     Use OCAF.
+    #     """
+    #     if not os.path.isfile(filename):
+    #         raise FileNotFoundError("%s not found." % filename)
+    #         print('Returning...')
+    #         return
+
+    #     self.step_filename = filename
+    #     print('Filename (full path): ', filename)
+
+    #     doc = TDocStd_Document(TCollection_ExtendedString("pythonocc-doc"))
+
+    #     shape_tool = XCAFDoc_DocumentTool_ShapeTool(doc.Main())
+    #     color_tool = XCAFDoc_DocumentTool_ColorTool(doc.Main())
+    #     #layer_tool = XCAFDoc_DocumentTool_LayerTool(doc.Main())
+    #     #mat_tool = XCAFDoc_DocumentTool_MaterialTool(doc.Main())
+
+    #     step_reader = STEPCAFControl_Reader()
+    #     step_reader.SetColorMode(True)
+    #     step_reader.SetLayerMode(True)
+    #     step_reader.SetNameMode(True)
+    #     step_reader.SetMatMode(True)
+    #     step_reader.SetGDTMode(True)
+
+    #     status = step_reader.ReadFile(filename)
+    #     if status == IFSelect_RetDone:
+    #         step_reader.Transfer(doc)
+
+    #     ''' loc tracks spatial transformation through each level of assembly structure
+    #         i.e. for each IsAssembly level, but not for sub-shapes '''
+    #     locs = []
+
+
+
+    #     def _get_sub_shapes(lab, loc):
+    #         #global cnt, lvl
+    #         #cnt += 1
+    #         #print("\n[%d] level %d, handling LABEL %s\n" % (cnt, lvl, _get_label_name(lab)))
+    #         #print()
+    #         #print(lab.DumpToString())
+    #         #print()
+    #         #print("Is Assembly    :", shape_tool.IsAssembly(lab))
+    #         #print("Is Free        :", shape_tool.IsFree(lab))
+    #         #print("Is Shape       :", shape_tool.IsShape(lab))
+    #         #print("Is Compound    :", shape_tool.IsCompound(lab))
+    #         #print("Is Component   :", shape_tool.IsComponent(lab))
+    #         #print("Is SimpleShape :", shape_tool.IsSimpleShape(lab))
+    #         #print("Is Reference   :", shape_tool.IsReference(lab))
+
+    #         #users = TDF_LabelSequence()
+    #         #users_cnt = shape_tool.GetUsers(lab, users)
+    #         #print("Nr Users       :", users_cnt)
+
+    #         name = lab.GetLabelName()
+    #         # print("Name :", name)
+
+
+
+    #         ''' Properties common to assemblies and shapes
+    #             Assembly- and shape-specific properties added in if/else below '''
+    #         node = self.new_node_id
+    #         self.add_edge(self.parent, node)
+    #         self.nodes[node]['occ_label'] = lab
+    #         self.nodes[node]['occ_name'] = name
+    #         self.nodes[node]['is_subshape'] = False
+    #         if name in self.product_names:
+    #             is_product = True
+    #         else:
+    #             is_product = False
+    #         self.nodes[node]['is_product'] = is_product
+
+
+
+    #         if shape_tool.IsAssembly(lab):
+
+    #             ''' Get components -> l_c '''
+    #             l_c = TDF_LabelSequence()
+    #             shape_tool.GetComponents(lab, l_c)
+    #             #print("Nb components  :", l_c.Length())
+    #             #print()
+
+    #             ''' Assembly-specific (i.e. non-shape) properties '''
+    #             self.nodes[node]['screen_name'] = self.get_screen_name(name, None)
+    #             self.nodes[node]['shape_raw'] = (None, None)
+    #             self.nodes[node]['shape_loc'] = (None, None)
+
+
+    #             for i in range(l_c.Length()):
+    #                 label = l_c.Value(i+1)
+    #                 if shape_tool.IsReference(label):
+    #                     #print("\n########  reference label :", label)
+    #                     label_reference = TDF_Label()
+    #                     shape_tool.GetReferredShape(label, label_reference)
+    #                     loc = shape_tool.GetLocation(label)
+
+    #                     self.parent = node
+
+    #                     ''' Append location for this level '''
+    #                     locs.append(loc)
+    #                     #print(">>>>")
+    #                     #lvl += 1
+    #                     _get_sub_shapes(label_reference, loc)
+    #                     #lvl -= 1
+    #                     #print("<<<<")
+    #                     locs.pop()
+
+
+
+    #         elif shape_tool.IsSimpleShape(lab):
+
+    #             ''' Get sub-shapes-> l_subss '''
+    #             l_subss = TDF_LabelSequence()
+    #             shape_tool.GetSubShapes(lab, l_subss)
+    #             #print("Nb subshapes   :", l_subss.Length())
+
+    #             #print("\n########  simpleshape label :", lab)
+    #             shape = shape_tool.GetShape(lab)
+    #             #print("    all ass locs   :", locs)
+
+    #             ''' Create location by applying all locations to that level in sequence
+    #                 as they are applied in sequence '''
+    #             loc = TopLoc_Location()
+    #             for l in locs:
+    #                 #print("    take loc       :", l)
+    #                 loc = loc.Multiplied(l)
+
+    #             ''' HR June 21 some code duplication for colour assignment
+    #                 but didn't work when reduced to single block '''
+    #             c = Quantity_Color(0.5, 0.5, 0.5, Quantity_TOC_RGB)  # default color
+    #             colorSet = False
+    #             if (color_tool.GetInstanceColor(shape, 0, c) or
+    #                     color_tool.GetInstanceColor(shape, 1, c) or
+    #                     color_tool.GetInstanceColor(shape, 2, c)):
+    #                 color_tool.SetInstanceColor(shape, 0, c)
+    #                 color_tool.SetInstanceColor(shape, 1, c)
+    #                 color_tool.SetInstanceColor(shape, 2, c)
+    #                 colorSet = True
+    #                 n = c.Name(c.Red(), c.Green(), c.Blue())
+    #                 # print('    instance color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
+
+    #             if not colorSet:
+    #                 if (color_tool.GetColor(lab, 0, c) or
+    #                         color_tool.GetColor(lab, 1, c) or
+    #                         color_tool.GetColor(lab, 2, c)):
+    #                     color_tool.SetInstanceColor(shape, 0, c)
+    #                     color_tool.SetInstanceColor(shape, 1, c)
+    #                     color_tool.SetInstanceColor(shape, 2, c)
+
+    #                     n = c.Name(c.Red(), c.Green(), c.Blue())
+    #                     # print('    shape color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
+
+
+
+    #             ''' Shape-specific (i.e. non-assembly) properties '''
+    #             self.nodes[node]['screen_name'] = self.get_screen_name(name, shape)
+    #             self.nodes[node]['shape_raw'] = (shape, loc)
+    #             self.nodes[node]['shape_loc'] = (BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape(), c)
+    #             self.parent = node
+
+
+
+    #             # ''' Location (loc) is applied in sequence '''
+    #             # shape_disp = BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape()
+
+    #             # if not shape_disp in output_shapes:
+    #             #     output_shapes[shape_disp] = [lab.GetLabelName(), c]
+
+
+
+    #             ''' Return if sub-shapes are not required '''
+    #             if not get_subshapes:
+    #                 return
+
+
+
+    #             for i in range(l_subss.Length()):
+    #                 lab_subs = l_subss.Value(i+1)
+    #                 shape_sub = shape_tool.GetShape(lab_subs)
+    #                 # print("\n########  simpleshape subshape label, type :", lab_subs.GetLabelName(), type(shape_sub))
+
+    #                 c = Quantity_Color(0.5, 0.5, 0.5, Quantity_TOC_RGB)  # default color
+    #                 colorSet = False
+    #                 if (color_tool.GetInstanceColor(shape_sub, 0, c) or
+    #                         color_tool.GetInstanceColor(shape_sub, 1, c) or
+    #                         color_tool.GetInstanceColor(shape_sub, 2, c)):
+    #                     color_tool.SetInstanceColor(shape_sub, 0, c)
+    #                     color_tool.SetInstanceColor(shape_sub, 1, c)
+    #                     color_tool.SetInstanceColor(shape_sub, 2, c)
+    #                     colorSet = True
+    #                     # n = c.Name(c.Red(), c.Green(), c.Blue())
+    #                     # print('    instance color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
+
+    #                 if not colorSet:
+    #                     if (color_tool.GetColor(lab_subs, 0, c) or
+    #                             color_tool.GetColor(lab_subs, 1, c) or
+    #                             color_tool.GetColor(lab_subs, 2, c)):
+    #                         color_tool.SetInstanceColor(shape_sub, 0, c)
+    #                         color_tool.SetInstanceColor(shape_sub, 1, c)
+    #                         color_tool.SetInstanceColor(shape_sub, 2, c)
+
+    #                         # n = c.Name(c.Red(), c.Green(), c.Blue())
+    #                         # print('    shape color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
+
+    #                 # ''' Location (loc) is common to all sub-shapes '''
+    #                 # shape_to_disp = BRepBuilderAPI_Transform(shape_sub, loc.Transformation()).Shape()
+
+    #                 # if not shape_to_disp in output_shapes:
+    #                 #     output_shapes[shape_to_disp] = [lab_subs.GetLabelName(), c]
+
+
+
+    #                 ''' Sub-shape-specific (i.e. non-shape, non-assembly) properties '''
+    #                 name_sub = lab_subs.GetLabelName()
+
+    #                 node = self.new_node_id
+    #                 self.add_edge(self.parent, node)
+    #                 self.nodes[node]['occ_label'] = lab_subs
+    #                 self.nodes[node]['occ_name'] = name_sub
+    #                 self.nodes[node]['shape_raw'] = (shape_sub, loc)
+    #                 self.nodes[node]['shape_loc'] = (BRepBuilderAPI_Transform(shape_sub, loc.Transformation()).Shape(), c)
+    #                 self.nodes[node]['screen_name'] = self.get_screen_name(name_sub, shape_sub)
+    #                 self.nodes[node]['is_subshape'] = True
+    #                 self.nodes[node]['is_product'] = False
+
+
+
+    #     ''' Create graph structure for shape data '''
+    #     head = self.new_node_id
+    #     self.head = head
+    #     self.add_node(head)
+    #     self.nodes[head]['occ_label'] = None
+    #     self.nodes[head]['occ_name'] = None
+    #     self.nodes[head]['screen_name'] = self.HEAD_NAME_DEFAULT
+    #     self.nodes[head]['shape_raw'] = (None, None)
+    #     self.nodes[head]['shape_loc'] = (None, None)
+    #     self.nodes[head]['is_subshape'] = False
+    #     self.nodes[head]['is_product'] = False
+
+
+
+    #     # def _get_shapes():
+    #     labels = TDF_LabelSequence()
+    #     ''' Free shapes are those not referred to by any other
+    #         1. If assembly structure present, this gets root item
+    #         2. If not, all items in flat structure
+    #         https://dev.opencascade.org/doc/refman/html/class_x_c_a_f_doc___shape_tool.html '''
+    #     shape_tool.GetFreeShapes(labels)
+    #     #global cnt
+    #     #cnt += 1
+    #     print("Number of shapes at root :", labels.Length())
+
+    #     # if labels.Length() > 1:
+    #     #     ''' Create head node; all "free shapes" at root then children thereof '''
+    #     # else:
+    #     #     ''' No need to create head node as single "free shape" is head '''
+
+    #     for i in range(labels.Length()):
+
+    #         root_item = labels.Value(i+1)
+
+    #         self.parent = head
+    #         _get_sub_shapes(root_item, None)
+
+    #     # _get_shapes()
+    #     # # return output_shapes
+
+    #     self.remove_redundants()
+    #     self.file_loaded = True
+
+
+
+    ''' HR 25/02/22 New version to remove unnecessary head node if only one "free shape" at root;
+                    and to grab all shapes, including sub-assemblies '''
     def load_step(self, filename, get_subshapes = False):
         ''' HR 11/05/21 Adapted from "read_step_file_with_names_colors"
             in OCC.Extend.DataExchange here:
@@ -2959,8 +3358,11 @@ class StepParse(nx.DiGraph):
         """
         if not os.path.isfile(filename):
             raise FileNotFoundError("%s not found." % filename)
+            print('Returning...')
+            return
 
         self.step_filename = filename
+        print('Filename (full path): ', filename)
 
         doc = TDocStd_Document(TCollection_ExtendedString("pythonocc-doc"))
 
@@ -2986,20 +3388,6 @@ class StepParse(nx.DiGraph):
 
 
 
-        ''' Create graph structure for shape data '''
-        head = self.new_node_id
-        self.head = head
-        self.add_node(head)
-        self.nodes[head]['occ_label'] = None
-        self.nodes[head]['occ_name'] = None
-        self.nodes[head]['screen_name'] = self.head_name
-        self.nodes[head]['shape_raw'] = (None, None)
-        self.nodes[head]['shape_loc'] = (None, None)
-        self.nodes[head]['is_subshape'] = False
-        self.nodes[head]['is_product'] = False
-
-
-
         def _get_sub_shapes(lab, loc):
             #global cnt, lvl
             #cnt += 1
@@ -3021,21 +3409,70 @@ class StepParse(nx.DiGraph):
 
             name = lab.GetLabelName()
             # print("Name :", name)
+            shape = shape_tool.GetShape(lab)
+
+            ''' Create location by applying all locations to that level in sequence
+                as they are applied in sequence '''
+            loc = TopLoc_Location()
+            for l in locs:
+                #print("    take loc       :", l)
+                loc = loc.Multiplied(l)
+
+            ''' Calculate correct location recursively '''
+            shape_loc = BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape()
+
+            ''' HR June 21 some code duplication for colour assignment
+                but didn't work when reduced to single block '''
+            c = Quantity_Color(0.5, 0.5, 0.5, Quantity_TOC_RGB)  # default color
+            colorSet = False
+            if (color_tool.GetInstanceColor(shape, 0, c) or
+                    color_tool.GetInstanceColor(shape, 1, c) or
+                    color_tool.GetInstanceColor(shape, 2, c)):
+                color_tool.SetInstanceColor(shape, 0, c)
+                color_tool.SetInstanceColor(shape, 1, c)
+                color_tool.SetInstanceColor(shape, 2, c)
+                colorSet = True
+                # n = c.Name(c.Red(), c.Green(), c.Blue())
+                # print('    instance color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
+
+            if not colorSet:
+                if (color_tool.GetColor(lab, 0, c) or
+                        color_tool.GetColor(lab, 1, c) or
+                        color_tool.GetColor(lab, 2, c)):
+                    color_tool.SetInstanceColor(shape, 0, c)
+                    color_tool.SetInstanceColor(shape, 1, c)
+                    color_tool.SetInstanceColor(shape, 2, c)
+                    # n = c.Name(c.Red(), c.Green(), c.Blue())
+                    # print('    shape color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
+
+
+
+            # ''' Shape-specific (i.e. non-assembly) properties '''
+            # # attr_dict = {'screen_name': self.get_screen_name(name, shape),
+            # #              'shape_raw': (shape, loc),
+            # #              'shape_loc': (BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape(), c)}
+            # attr_dict = {'shape_loc': (BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape(), c)}
+            # nx.set_node_attributes(self, {node: attr_dict})
+
 
 
 
             ''' Properties common to assemblies and shapes
                 Assembly- and shape-specific properties added in if/else below '''
             node = self.new_node_id
-            self.add_edge(self.parent, node)
-            self.nodes[node]['occ_label'] = lab
-            self.nodes[node]['occ_name'] = name
-            self.nodes[node]['is_subshape'] = False
             if name in self.product_names:
                 is_product = True
             else:
                 is_product = False
-            self.nodes[node]['is_product'] = is_product
+            attr_dict = {'occ_label': lab,
+                         'occ_name': name,
+                         'is_subshape': False,
+                         'is_product': is_product,
+                         'screen_name': self.get_screen_name(name, shape),
+                         'shape_raw': (shape, loc),
+                         'shape_loc': (shape_loc, c)}
+            self.add_node(node, **attr_dict)
+            self.add_edge(self.parent, node)
 
 
 
@@ -3047,11 +3484,20 @@ class StepParse(nx.DiGraph):
                 #print("Nb components  :", l_c.Length())
                 #print()
 
-                ''' Assembly-specific (i.e. non-shape) properties '''
-                self.nodes[node]['screen_name'] = self.get_screen_name(name, None)
-                self.nodes[node]['shape_raw'] = (None, None)
-                self.nodes[node]['shape_loc'] = (None, None)
+                # ''' Assembly-specific (i.e. non-shape) properties '''
+                # attr_dict = {'screen_name': self.get_screen_name(name, None),
+                #              'shape_raw': (None, None),
+                #              'shape_loc': (None, None)}
+                # nx.set_node_attributes(self, {node: attr_dict})
 
+                # shape = shape_tool.GetShape(lab)
+
+                # ''' Assembly-specific (i.e. non-shape) properties '''
+                # # attr_dict = {'screen_name': self.get_screen_name(name, shape),
+                # #              'shape_raw': (shape, loc),
+                # #              'shape_loc': (None, None)}
+                # attr_dict = {'shape_loc': (None, None)}
+                # nx.set_node_attributes(self, {node: attr_dict})
 
                 for i in range(l_c.Length()):
                     label = l_c.Value(i+1)
@@ -3082,47 +3528,49 @@ class StepParse(nx.DiGraph):
                 #print("Nb subshapes   :", l_subss.Length())
 
                 #print("\n########  simpleshape label :", lab)
-                shape = shape_tool.GetShape(lab)
+                # shape = shape_tool.GetShape(lab)
                 #print("    all ass locs   :", locs)
 
-                ''' Create location by applying all locations to that level in sequence
-                    as they are applied in sequence '''
-                loc = TopLoc_Location()
-                for l in locs:
-                    #print("    take loc       :", l)
-                    loc = loc.Multiplied(l)
+                # ''' Create location by applying all locations to that level in sequence
+                #     as they are applied in sequence '''
+                # loc = TopLoc_Location()
+                # for l in locs:
+                #     #print("    take loc       :", l)
+                #     loc = loc.Multiplied(l)
 
-                ''' HR June 21 some code duplication for colour assignment
-                    but didn't work when reduced to single block '''
-                c = Quantity_Color(0.5, 0.5, 0.5, Quantity_TOC_RGB)  # default color
-                colorSet = False
-                if (color_tool.GetInstanceColor(shape, 0, c) or
-                        color_tool.GetInstanceColor(shape, 1, c) or
-                        color_tool.GetInstanceColor(shape, 2, c)):
-                    color_tool.SetInstanceColor(shape, 0, c)
-                    color_tool.SetInstanceColor(shape, 1, c)
-                    color_tool.SetInstanceColor(shape, 2, c)
-                    colorSet = True
-                    n = c.Name(c.Red(), c.Green(), c.Blue())
-                    # print('    instance color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
+                # ''' HR June 21 some code duplication for colour assignment
+                #     but didn't work when reduced to single block '''
+                # c = Quantity_Color(0.5, 0.5, 0.5, Quantity_TOC_RGB)  # default color
+                # colorSet = False
+                # if (color_tool.GetInstanceColor(shape, 0, c) or
+                #         color_tool.GetInstanceColor(shape, 1, c) or
+                #         color_tool.GetInstanceColor(shape, 2, c)):
+                #     color_tool.SetInstanceColor(shape, 0, c)
+                #     color_tool.SetInstanceColor(shape, 1, c)
+                #     color_tool.SetInstanceColor(shape, 2, c)
+                #     colorSet = True
+                #     # n = c.Name(c.Red(), c.Green(), c.Blue())
+                #     # print('    instance color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
 
-                if not colorSet:
-                    if (color_tool.GetColor(lab, 0, c) or
-                            color_tool.GetColor(lab, 1, c) or
-                            color_tool.GetColor(lab, 2, c)):
-                        color_tool.SetInstanceColor(shape, 0, c)
-                        color_tool.SetInstanceColor(shape, 1, c)
-                        color_tool.SetInstanceColor(shape, 2, c)
-
-                        n = c.Name(c.Red(), c.Green(), c.Blue())
-                        # print('    shape color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
-
+                # if not colorSet:
+                #     if (color_tool.GetColor(lab, 0, c) or
+                #             color_tool.GetColor(lab, 1, c) or
+                #             color_tool.GetColor(lab, 2, c)):
+                #         color_tool.SetInstanceColor(shape, 0, c)
+                #         color_tool.SetInstanceColor(shape, 1, c)
+                #         color_tool.SetInstanceColor(shape, 2, c)
+                #         # n = c.Name(c.Red(), c.Green(), c.Blue())
+                #         # print('    shape color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
 
 
-                ''' Shape-specific (i.e. non-assembly) properties '''
-                self.nodes[node]['screen_name'] = self.get_screen_name(name, shape)
-                self.nodes[node]['shape_raw'] = (shape, loc)
-                self.nodes[node]['shape_loc'] = (BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape(), c)
+
+                # ''' Shape-specific (i.e. non-assembly) properties '''
+                # # attr_dict = {'screen_name': self.get_screen_name(name, shape),
+                # #              'shape_raw': (shape, loc),
+                # #              'shape_loc': (BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape(), c)}
+                # attr_dict = {'shape_loc': (BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape(), c)}
+                # nx.set_node_attributes(self, {node: attr_dict})
+
                 self.parent = node
 
 
@@ -3165,7 +3613,6 @@ class StepParse(nx.DiGraph):
                             color_tool.SetInstanceColor(shape_sub, 0, c)
                             color_tool.SetInstanceColor(shape_sub, 1, c)
                             color_tool.SetInstanceColor(shape_sub, 2, c)
-
                             # n = c.Name(c.Red(), c.Green(), c.Blue())
                             # print('    shape color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
 
@@ -3180,39 +3627,53 @@ class StepParse(nx.DiGraph):
                     ''' Sub-shape-specific (i.e. non-shape, non-assembly) properties '''
                     name_sub = lab_subs.GetLabelName()
 
+                    ''' Add node + attributes + edge '''
                     node = self.new_node_id
+                    attr_dict = {'occ_label': lab_subs,
+                                  'occ_name': name_sub,
+                                  'shape_raw': (shape_sub, loc),
+                                  'shape_loc': (BRepBuilderAPI_Transform(shape_sub, loc.Transformation()).Shape(), c),
+                                  'screen_name':  self.get_screen_name(name_sub, shape_sub),
+                                  'is_subshape': True,
+                                  'is_product': False}
+                    self.add_node(node, **attr_dict)
                     self.add_edge(self.parent, node)
-                    self.nodes[node]['occ_label'] = lab_subs
-                    self.nodes[node]['occ_name'] = name_sub
-                    self.nodes[node]['shape_raw'] = (shape_sub, loc)
-                    self.nodes[node]['shape_loc'] = (BRepBuilderAPI_Transform(shape_sub, loc.Transformation()).Shape(), c)
-                    self.nodes[node]['screen_name'] = self.get_screen_name(name_sub, shape_sub)
-                    self.nodes[node]['is_subshape'] = True
-                    self.nodes[node]['is_product'] = False
 
 
 
+        ''' Create graph structure for shape data '''
+        head = self.new_node_id
+        self.head = head
+        attr_dict = {'occ_label': None,
+                     'occ_name': None,
+                     'screen_name': self.HEAD_NAME_DEFAULT,
+                     'shape_raw': (None, None),
+                     'shape_loc': (None, None),
+                     'is_subshape': False,
+                     'is_product': False}
+        self.add_node(head, **attr_dict)
 
-        def _get_shapes():
-            labels = TDF_LabelSequence()
-            ''' Free shapes are those not referred to by any other
-                1. If assembly structure present, this gets root item
-                2. If not, all items in flat structure
-                https://dev.opencascade.org/doc/refman/html/class_x_c_a_f_doc___shape_tool.html '''
-            shape_tool.GetFreeShapes(labels)
-            #global cnt
-            #cnt += 1
-            print("Number of shapes at root :", labels.Length())
 
-            for i in range(labels.Length()):
 
-                root_item = labels.Value(i+1)
+        # def _get_shapes():
+        labels = TDF_LabelSequence()
 
-                self.parent = head
-                _get_sub_shapes(root_item, None)
+        ''' Free shapes are those not referred to by any other
+            1. If assembly structure present, this gets root item
+            2. If not, all items in flat structure
+            https://dev.opencascade.org/doc/refman/html/class_x_c_a_f_doc___shape_tool.html '''
+        shape_tool.GetFreeShapes(labels)
+        #global cnt
+        #cnt += 1
+        print("Number of shapes at root :", labels.Length())
 
-        _get_shapes()
-        # return output_shapes
+        for i in range(labels.Length()):
+            root_item = labels.Value(i+1)
+            self.parent = head
+            _get_sub_shapes(root_item, None)
+
+        # _get_shapes()
+        # # return output_shapes
 
         self.remove_redundants()
         self.file_loaded = True
@@ -3308,7 +3769,8 @@ class StepParse(nx.DiGraph):
         ''' Get list of redundant nodes and link past them... '''
         to_remove = []
         for node in tree:
-            if self.out_degree(node) == 1 and self.nodes[node]['screen_name'] != self.head_name:
+            # if self.out_degree(node) == 1 and self.nodes[node]['screen_name'] != self.head_name:
+            if self.out_degree(node) == 1 and self.nodes[node]['screen_name'] != self.nodes[self.head]['screen_name']:
                 parent = self.get_parent(node)
                 child  = self.get_child(node)
                 ''' Don't remove if at head of tree (i.e. if in_degree == 0)...

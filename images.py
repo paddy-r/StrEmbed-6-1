@@ -1,4 +1,4 @@
-# HR 08-07-2021 10:35:24
+# HR 23-02-2022 12:37:12
 # Created with "embed_images.py"
 
 from wx.lib.embeddedimage import PyEmbeddedImage
