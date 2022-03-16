@@ -25,16 +25,24 @@ def get_optimal_values(arr, greedy = None, maximize = True, tol = 0, default = -
     
     ''' If "greedy" specified, proceed by either row (1) or column (2), matching by local highest score
         i.e. greedy matching; "by_row" -> by items in first input list, "by_column" -> by second
-        NOT FINISHED: 
+        NOT FINISHED (MUST TEXT MAX/MIN SWITCH): 
             1. Returns too many results if n != m
             2. Does not check for duplicate by row/column (as can only be max of one match in each) '''
     if greedy == "by_row":
         row_ind = np.arange(len(arr))
-        col_ind = np.argmax(arr, axis = 1)
+        if maximize:
+            maxminmode = np.argmax
+        else:
+            maxminmode = np.argmin
+        col_ind = maxminmode(arr, axis = 1)
 
     elif greedy == "by_column":
         col_ind = np.arange(len(arr[0]))
-        row_ind = np.argmax(arr, axis = 0)
+        if maximize:
+            maxminmode = np.argmax
+        else:
+            maxminmode = np.argmin
+        row_ind = maxminmode(arr, axis = 0)
 
     else:
         ''' ...else find globally optimal set of matches '''

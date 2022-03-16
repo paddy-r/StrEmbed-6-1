@@ -437,6 +437,21 @@ class DataEntryDialog(wx.Dialog):
 
 
 
+# class SpecDialog(wx.Dialog):
+#     def __init__(self, choices, title):
+#         wx.Dialog.__init__(self, None, title = title)
+#         cb = wx.ComboBox(self,
+#                          choices = choices,
+#                          value = "")
+#         ok_button = wx.Button(self, wx.ID_OK)
+
+#         sizer = wx.BoxSizer(wx.VERTICAL)
+#         sizer.Add(cb, 0, wx.ALL|wx.CENTER, 5)
+#         sizer.Add(ok_button, 0, wx.ALL|wx.CENTER, 5)
+#         self.SetSizer(sizer)
+
+
+
 class MainWindow(wx.Frame):
     def __init__(self):
 
@@ -473,7 +488,7 @@ class MainWindow(wx.Frame):
         self._highlight_colour = wx.RED
         self.LATTICE_PLOT_MODE_DEFAULT = True
         self.COMMON_SELECTOR_VIEW = True
-        self.SELECT_ALL_CHILDREN = True
+        self.SELECT_ALL_CHILDREN = False
 
         self.origin = (0,0)
         self.click_pos = None
@@ -678,6 +693,7 @@ class MainWindow(wx.Frame):
         self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnNewButton, id = ID_NEW)
         self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnDeleteAssembly, id = ID_DELETE)
         self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnFileOpen, id = ID_FILE_OPEN)
+        self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnFileSave, id = ID_FILE_SAVE)
 
         ass_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnAddNode, id = ID_ADD_NODE)
         ass_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnRemoveNode, id = ID_REMOVE_NODE)
@@ -689,9 +705,9 @@ class MainWindow(wx.Frame):
         sort_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnSortMode, id = ID_SORT_MODE)
         sort_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnSortReverse, id = ID_SORT_REVERSE)
 
-        recon_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnCalcSim, id = ID_CALC_SIM)
-        recon_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnMapAssemblies, id = ID_ASS_MAP)
-        recon_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnRecon, id = ID_RECON)
+        # recon_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnCalcSim, id = ID_CALC_SIM)
+        # recon_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnMapAssemblies, id = ID_ASS_MAP)
+        # recon_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnRecon, id = ID_RECON)
 
         suggestions_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnSuggestionsButton, id = ID_SUGGEST)
         suggestions_ops.Bind(RB.EVT_RIBBONBUTTONBAR_DROPDOWN_CLICKED, self.OnSuggestionsDropdown, id = ID_SUGGEST)
@@ -764,84 +780,84 @@ class MainWindow(wx.Frame):
 
 
 
-    def OnMapAssemblies(self, event):
+    # def OnMapAssemblies(self, event):
 
-        ''' HR FEB 2021
-            Disabled for now '''
-        # print('Mapping assembly elements...')
-        # _assemblies = self.get_selected_assemblies()
+    #     ''' HR FEB 2021
+    #         Disabled for now '''
+    #     # print('Mapping assembly elements...')
+    #     # _assemblies = self.get_selected_assemblies()
 
-        # if not _assemblies:
-        #     self.AddText('Could not get assemblies')
-        #     return None
+    #     # if not _assemblies:
+    #     #     self.AddText('Could not get assemblies')
+    #     #     return None
 
-        # a1 = _assemblies[0]
-        # a2 = _assemblies[1]
+    #     # a1 = _assemblies[0]
+    #     # a2 = _assemblies[1]
 
-        # _mapped, _unmapped = StepParse.map_nodes(a1, a2)
-        # self.AddText('Done mapping nodes')
-        # print('Mapped nodes: ', _mapped)
-        # print('Unmapped nodes: ', _unmapped)
+    #     # _mapped, _unmapped = StepParse.map_nodes(a1, a2)
+    #     # self.AddText('Done mapping nodes')
+    #     # print('Mapped nodes: ', _mapped)
+    #     # print('Unmapped nodes: ', _unmapped)
 
-        ''' HR June 21 xlsx_write removed here -> fileutils as want to consolidate in future '''
-        # self.xlsx_write()
-
-
-
-    def OnCalcSim(self, event):
-
-        ''' HR FEB 2021
-            Disabled for now '''
-        # self.AddText('Calculate similarity button pressed')
-
-        # _assemblies = self.get_selected_assemblies()
-
-        # if not _assemblies:
-        #     self.AddText('Could not get assemblies')
-        #     return None
-
-        # a1 = _assemblies[0]
-        # a2 = _assemblies[1]
-        # _map = {}
-
-        # l1 = a1.leaves
-        # l2 = a2.leaves
-
-        # for n1 in l1:
-        #     for n2 in l2:
-        #         _map[(n1, n2)] = StepParse.similarity(a1.nodes[n1]['label'], a2.nodes[n2]['label'])
-
-        # _g = nx.compose(a1,a2)
-        # print('Nodes:', _g.nodes)
-        # print('Edges:', _g.edges)
-
-        # return _map
-        pass
+    #     ''' HR June 21 xlsx_write removed here -> fileutils as want to consolidate in future '''
+    #     # self.xlsx_write()
 
 
 
-    def OnRecon(self, event = None):
+    # def OnCalcSim(self, event):
 
-        self.AddText('Tree reconciliation running...')
+    #     ''' HR FEB 2021
+    #         Disabled for now '''
+    #     # self.AddText('Calculate similarity button pressed')
 
-        assemblies = self.get_selected_assemblies()
+    #     # _assemblies = self.get_selected_assemblies()
 
-        if not assemblies:
-            self.AddText('Could not get assemblies')
-            return None
+    #     # if not _assemblies:
+    #     #     self.AddText('Could not get assemblies')
+    #     #     return None
 
-        a1 = assemblies[0]
-        a2 = assemblies[1]
+    #     # a1 = _assemblies[0]
+    #     # a2 = _assemblies[1]
+    #     # _map = {}
 
-        ''' HR June 21 "Reconcile" moved from StepParse class method to AssemblyManager '''
-        # paths, cost, cost_from_edits, node_edits, edge_edits = StepParse.Reconcile(a1, a2)
-        paths, cost, cost_from_edits, node_edits, edge_edits = self._assembly_manager.Reconcile(a1, a2)
+    #     # l1 = a1.leaves
+    #     # l2 = a2.leaves
 
-        textout = 'Node edits: {}\nEdge edits: {}\nTotal cost (Networkx): {}\nTotal cost (no. of edits): {}'.format(
-            node_edits, edge_edits, cost, cost_from_edits)
+    #     # for n1 in l1:
+    #     #     for n2 in l2:
+    #     #         _map[(n1, n2)] = StepParse.similarity(a1.nodes[n1]['label'], a2.nodes[n2]['label'])
 
-        self.AddText('Tree reconciliation finished')
-        self.DoNothingDialog(event, textout)
+    #     # _g = nx.compose(a1,a2)
+    #     # print('Nodes:', _g.nodes)
+    #     # print('Edges:', _g.edges)
+
+    #     # return _map
+    #     pass
+
+
+
+    # def OnRecon(self, event = None):
+
+    #     self.AddText('Tree reconciliation running...')
+
+    #     assemblies = self.get_selected_assemblies()
+
+    #     if not assemblies:
+    #         self.AddText('Could not get assemblies')
+    #         return None
+
+    #     a1 = assemblies[0]
+    #     a2 = assemblies[1]
+
+    #     ''' HR June 21 "Reconcile" moved from StepParse class method to AssemblyManager '''
+    #     # paths, cost, cost_from_edits, node_edits, edge_edits = StepParse.Reconcile(a1, a2)
+    #     paths, cost, cost_from_edits, node_edits, edge_edits = self._assembly_manager.Reconcile(a1, a2)
+
+    #     textout = 'Node edits: {}\nEdge edits: {}\nTotal cost (Networkx): {}\nTotal cost (no. of edits): {}'.format(
+    #         node_edits, edge_edits, cost, cost_from_edits)
+
+    #     self.AddText('Tree reconciliation finished')
+    #     self.DoNothingDialog(event, textout)
 
 
 
@@ -894,12 +910,18 @@ class MainWindow(wx.Frame):
         menu = wx.Menu()
         ID_DELETE_ASSEMBLY = self.NewControlId()
         ID_RENAME_ASSEMBLY = self.NewControlId()
+        ID_ADD_TO_LATTICE = self.NewControlId()
+        ID_REMOVE_FROM_LATTICE = self.NewControlId()
 
         menu.Append(ID_DELETE_ASSEMBLY, 'Delete assembly')
         menu.Append(ID_RENAME_ASSEMBLY, 'Rename assembly')
+        menu.Append(ID_ADD_TO_LATTICE, 'Add assembly to lattice')
+        menu.Append(ID_REMOVE_FROM_LATTICE, 'Remove assembly from lattice')
 
         menu.Bind(wx.EVT_MENU, self.OnRenameAssembly, id = ID_RENAME_ASSEMBLY)
         menu.Bind(wx.EVT_MENU, self.OnDeleteAssembly, id = ID_DELETE_ASSEMBLY)
+        menu.Bind(wx.EVT_MENU, self.OnAddToLattice, id = ID_ADD_TO_LATTICE)
+        menu.Bind(wx.EVT_MENU, self.OnRemoveFromLattice, id = ID_REMOVE_FROM_LATTICE)
 
         self.PopupMenu(menu)
 
@@ -976,6 +998,20 @@ class MainWindow(wx.Frame):
 
         ''' Finally, refresh lattice view '''
         self.DisplayLattice(called_by = 'OnDeleteAssembly')
+
+
+
+    ''' HR 03/03/22 To add assembly to lattice, with dialog for user spec '''
+    def OnAddToLattice(self, event = None):
+        print('Running "OnAddToLattice"')
+        pass
+
+
+
+    ''' HR 03/03/22 To remove assembly from lattice '''
+    def OnRemoveFromLattice(self, event = None):
+        print('Running "OnRemoveFromLattice"')
+        pass
 
 
 
@@ -1085,6 +1121,40 @@ class MainWindow(wx.Frame):
         self.DisplayLattice(set_pos = True, called_by = 'OnFileOpen')
         # self.Update3DView(selected_items = self.selected_items)
         self.Update3DView()
+
+
+
+    ''' HR 11/03/22 To export project to Excel '''
+    def OnFileSave(self, event = None, filename = None, path = None):
+        print('Running "OnFileSave"...')
+
+        ''' Grab default path and filename if not specified '''
+        if not path:
+            path = self._assembly_manager.SAVE_PATH_DEFAULT
+        if not filename:
+            filename = self._assembly_manager.SAVE_FILENAME_DEFAULT
+
+        ''' Open file dialog and populate with path and filename for starters;
+            do even if path and file specified, to confirm with user '''
+        dialog_text = 'Export project to Excel'
+        ''' Create file dialog '''
+        fileDialog = wx.FileDialog(parent = self,
+                                   message = dialog_text,
+                                   defaultDir = path,
+                                   defaultFile = filename,
+                                   style = wx.FD_SAVE)
+        fileDialog.ShowModal()
+        file_fullpath = fileDialog.GetPath()
+        print('Full path from file dialog: \n', file_fullpath)
+        fileDialog.Destroy()
+
+        ''' Construct full file path and save project to Excel '''
+        # file_fullpath = os.path.join(path, filename)
+        print('Filename (full path): ', file_fullpath)
+
+        ''' Dump project to Excel file and return full file path '''
+        self._assembly_manager.xlsx_write(save_file = file_fullpath)
+        return file_fullpath
 
 
 
@@ -1912,7 +1982,6 @@ class MainWindow(wx.Frame):
         for node in nodes:
             item = self._page.ctc_dict[node]
             self._page.partTree_ctc.CheckItem(item)
-
 
 
 
