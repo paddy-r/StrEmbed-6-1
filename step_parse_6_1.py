@@ -108,6 +108,8 @@ from part_compare import PartCompare, load_from_step
 
 ''' HR 12/12/21 For pickling graphs of shapes for faster retrieval in similarity scoring '''
 import pickle
+''' HR 17/03/22 For duplicating assemblies '''
+import copy
 
 import hungarian_algorithm as hungalg
 
@@ -389,6 +391,20 @@ class AssemblyManager():
 
 
 
+    def get_new_assembly_name(self, new_id):
+        name = 'Assembly ' + str(new_id)
+        ''' Check name doesn't exist; create new name by increment if so '''
+        names = [a.assembly_name for a in self._mgr.values()]
+        # names.remove(name)
+        while name in names:
+            print('Name already exists')
+            new_id += 1
+            name = 'Assembly ' + str(new_id)
+            continue
+        return name
+
+
+
     @property
     def new_assembly_id(self):
         if not hasattr(self, "assembly_id_counter"):
@@ -408,9 +424,28 @@ class AssemblyManager():
 
 
 
-    def new_assembly(self, dominant = None):
+    def new_assembly(self, dominant = None, id_to_duplicate = None):
+        ''' Get assembly ID and name '''
         assembly_id = self.new_assembly_id
-        assembly = StepParse(assembly_id)
+        assembly_name = self.get_new_assembly_name(assembly_id)
+
+        ''' Switch for duplication:
+            - If not duplicate, give ID as argument
+            - If duplicate, set afterwards '''
+        if not id_to_duplicate:
+            assembly = StepParse(assembly_id)
+        elif id_to_duplicate in self._mgr:
+            assembly_to_duplicate = self._mgr[id_to_duplicate]
+            assembly = copy.deepcopy(assembly_to_duplicate)
+            assembly.assembly_id = assembly_id
+        else:
+            print('Assembly ID to duplicate not found; returning None')
+            return None
+
+        ''' In both (valid) cases, reset name (lazy workaround for duplication case;
+            can be tidied up in StepParse later) '''
+        assembly.assembly_name = assembly_name
+
         self._mgr.update({assembly_id:assembly})
         print('Created new assembly with ID: ', assembly_id)
 
@@ -418,18 +453,6 @@ class AssemblyManager():
 
         return assembly_id, assembly
 
-
-
-    def remove_assembly(self, _id):
-        if _id in self._mgr:
-            print('Assembly ', _id, 'found in and removed from manager')
-            ''' Try and remove from lattice '''
-            self.RemoveFromLattice(_id)
-            self._mgr.pop(_id)
-            return True
-        else:
-            print('Assembly ', _id, 'not found in manager; could not be removed')
-            return False
 
 
 
@@ -573,6 +596,7 @@ class AssemblyManager():
 
     def remove_node_in_lattice(self, _id, node):
 
+        print('Running "remove_node_in_lattice"')
         ass = self._mgr[_id]
         nm = self.get_master_node(_id, node)
 
@@ -1020,17 +1044,41 @@ class AssemblyManager():
 
     def RemoveFromLattice(self, _id):
 
+        print('Running "RemoveFromLattice"')
+
+        ''' HR 18/03/22 Integrated this from "remove_assembly" as redundant
+                        Old code from there retained below '''
+        # def remove_assembly(self, _id):
+        #     if _id in self._mgr:
+        #         print('Assembly ', _id, 'found in and removed from manager')
+        #         ''' Try and remove from lattice '''
+        #         self.RemoveFromLattice(_id)
+        #         self._mgr.pop(_id)
+        #         return True
+        #     else:
+        #         print('Assembly ', _id, 'not found in manager; could not be removed')
+        #         return False
+
+        ''' ----------------------- '''
+        ''' Preparatory stuff '''
+
         if not self._mgr:
             print('Cannot remove assembly from lattice: no assembly in manager')
             return False
 
         if _id not in self._mgr:
             print('ID: ', _id)
-            print('Assembly not in manager; not proceeding')
+            print('Cannot remove assembly from manager as assembly not present')
             return False
+
+        ''' ----------------------- '''
+
+        # ''' Remove from manager '''
+        # self._mgr.pop(_id)
 
         ''' CASE 1: Lattice only contains single assembly '''
         if len(self._mgr) == 1:
+            print("Only one assembly in lattice, removing all nodes and edges")
             nodes = [node for node in self._lattice.nodes]
             ''' Edges will be removed automatically when their nodes are removed '''
             for node in nodes:
@@ -1059,7 +1107,43 @@ class AssemblyManager():
                     ''' ...and remove entirely if no other assemblies in dict '''
                     self._lattice.remove_node(node)
 
+        ''' Remove from manager '''
+        try:
+            print('Removing assembly from manager...')
+            self._mgr.pop(_id)
+            print('Done')
+        except Exception as e:
+            print('Could not remove assembly from manager; exception follows')
+            print(e)
+
         return True
+
+
+
+    ''' HR 18/03/22 To duplicate existing assembly in lattice
+                    - id1 = ID of existing assembly being duplicated
+                    - id2 = ID of duplicate assembly being added '''
+    def DuplicateInLattice(self, id1, id2):
+        ''' Duplicate all node references '''
+        for node in self._lattice.nodes:
+            node_dict = self._lattice.nodes[node]
+            if id1 in node_dict:
+                print('Found node; duplicating...')
+                node_dict[id2] = node_dict[id1]
+
+        ''' Duplicate all edge references '''
+        for edge in self._lattice.edges:
+            edge_dict = self._lattice.edges[edge]
+            if id1 in edge_dict:
+                print('Found edge, duplicating...')
+                edge_dict[id2] = edge_dict[id1]
+
+        print('Duplicated assembly ', id1, ' in lattice; assembly ', id2, 'now present')
+        print('Nodes, edges:')
+        for node in self._lattice.nodes:
+            print(self._lattice.nodes[node])
+        for edge in self._lattice.edges:
+            print(self._lattice.edges[edge])
 
 
 
@@ -2578,7 +2662,10 @@ class AssemblyManager():
 
 
 
-    def update_colours_active(self, to_activate = [], to_deactivate = []):
+    def update_colours_active(self, to_activate = [], to_deactivate = [], called_by = None):
+
+        print('Running "update_colours_active"')
+        print('Called by: ', called_by)
 
         latt = self._lattice
         nodes = latt.nodes
@@ -2797,10 +2884,40 @@ class AssemblyManager():
 
 
 
-class StepParse(nx.DiGraph):
+''' HR 17/03/22
+    Workaround to allow picking/deep-copying of StepParse;
+    solves problem of error when attempting copy.deepcopy of StepParse:
+        "TypeError: cannot pickle 'SwigPyObject' object"
+    i.e. deepcopy uses pickle, which cannot serialise SteParse,
+    presumably because of PythonOCC contents
+    ---
+    Solution from here: https://stackoverflow.com/questions/9310053/how-to-make-my-swig-extension-module-work-with-pickle
+    --
+    Important bits copied below and adapted into StepParse
+    ---
+    class PickalableC(C, PickalableSWIG):
+
+        def __init__(self, *args):
+            self.args = args
+            C.__init__(self)
+
+    where PickalableSWIG is as in class, below
+    --- '''
+class PicklableSWIG:
+
+    def __setstate__(self, state):
+        self.__init__(*state['args'])
+
+    def __getstate__(self):
+        return {'args': self.args}
+
+
+
+class StepParse(nx.DiGraph, PicklableSWIG):
 
     def __init__(self, assembly_id = None, *args, **kwargs):
 
+        self.args = args
         super().__init__(*args, **kwargs)
         self.part_level = 1
 
@@ -2821,7 +2938,7 @@ class StepParse(nx.DiGraph):
         self.default_label_part = 'Unnamed item'
         self.default_label_ass = 'Unnamed item'
         if 'head_name_default' in kwargs:
-            self.HEAD_NAME_DEFAULt = kwargs['head_name_default']
+            self.HEAD_NAME_DEFAULT = kwargs['head_name_default']
         else:
             self.HEAD_NAME_DEFAULT = '** PROJECT **'
 

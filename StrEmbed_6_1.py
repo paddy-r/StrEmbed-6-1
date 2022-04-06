@@ -398,8 +398,10 @@ class NotebookPanel(wx.Panel):
         self.ctc_dict_inv = {}
 
         ''' Toggle buttons '''
-        self.button_dict     = odict()
-        self.button_dict_inv = odict()
+        # self.button_dict     = odict()
+        # self.button_dict_inv = odict()
+        self.button_dict     = {}
+        self.button_dict_inv = {}
         self.button_img_dict = {}
 
         self.file_open = False
@@ -690,7 +692,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_SIZE, self.OnResize)
         self.Bind(wx.EVT_CLOSE, self.OnExit)
 
-        self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnNewButton, id = ID_NEW)
+        self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnNewAssembly, id = ID_NEW)
         self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnDeleteAssembly, id = ID_DELETE)
         self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnFileOpen, id = ID_FILE_OPEN)
         self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnFileSave, id = ID_FILE_SAVE)
@@ -743,7 +745,7 @@ class MainWindow(wx.Frame):
 
 
         ''' Starter assembly '''
-        self.MakeNewAssembly()
+        self.MakeNewAssemblyPage()
 
 
 
@@ -768,12 +770,12 @@ class MainWindow(wx.Frame):
         print(name1)
         print(name2)
 
+        # a1 = self._assembly_manager._mgr[id1]
+        # a2 = self._assembly_manager._mgr[id2]
         p1 = [el for el in self._notebook_manager if el.name == name1][0]
         id1 = self._notebook_manager[p1]
-        # a1 = self._assembly_manager._mgr[id1]
         p2 = [el for el in self._notebook_manager if el.name == name2][0]
         id2 = self._notebook_manager[p2]
-        # a2 = self._assembly_manager._mgr[id2]
 
         # return a1, a2
         return id1, id2
@@ -912,16 +914,19 @@ class MainWindow(wx.Frame):
         ID_RENAME_ASSEMBLY = self.NewControlId()
         ID_ADD_TO_LATTICE = self.NewControlId()
         ID_REMOVE_FROM_LATTICE = self.NewControlId()
+        ID_DUPLICATE_ASSEMBLY = self.NewControlId()
 
         menu.Append(ID_DELETE_ASSEMBLY, 'Delete assembly')
         menu.Append(ID_RENAME_ASSEMBLY, 'Rename assembly')
         menu.Append(ID_ADD_TO_LATTICE, 'Add assembly to lattice')
         menu.Append(ID_REMOVE_FROM_LATTICE, 'Remove assembly from lattice')
+        menu.Append(ID_DUPLICATE_ASSEMBLY, 'Duplicate active assembly')
 
         menu.Bind(wx.EVT_MENU, self.OnRenameAssembly, id = ID_RENAME_ASSEMBLY)
         menu.Bind(wx.EVT_MENU, self.OnDeleteAssembly, id = ID_DELETE_ASSEMBLY)
         menu.Bind(wx.EVT_MENU, self.OnAddToLattice, id = ID_ADD_TO_LATTICE)
         menu.Bind(wx.EVT_MENU, self.OnRemoveFromLattice, id = ID_REMOVE_FROM_LATTICE)
+        menu.Bind(wx.EVT_MENU, self.OnDuplicateAssembly, id = ID_DUPLICATE_ASSEMBLY)
 
         self.PopupMenu(menu)
 
@@ -936,6 +941,7 @@ class MainWindow(wx.Frame):
 
 
 
+    ''' Should be integrated into AssemblyManager '''
     def OnRenameAssembly(self, event):
         # page = self._notebook.GetPage(self._notebook.GetSelection())
         old_name = self.assembly.assembly_name
@@ -986,7 +992,7 @@ class MainWindow(wx.Frame):
         self._notebook.DeletePage(selection)
         _id = self._notebook_manager[page]
 
-        self._assembly_manager.remove_assembly(_id)
+        self._assembly_manager.RemoveFromLattice(_id)
         self._notebook_manager.pop(page)
         self.AddText('Assembly deleted')
 
@@ -1004,14 +1010,73 @@ class MainWindow(wx.Frame):
     ''' HR 03/03/22 To add assembly to lattice, with dialog for user spec '''
     def OnAddToLattice(self, event = None):
         print('Running "OnAddToLattice"')
-        pass
+        ''' Not tested '''
+        # _id = self.assembly.assembly_id
+        # self._assembly_manager.AddToLattice(_id)
 
 
 
     ''' HR 03/03/22 To remove assembly from lattice '''
     def OnRemoveFromLattice(self, event = None):
         print('Running "OnRemoveFromLattice"')
-        pass
+        ''' Not tested '''
+        # _id = self.assembly.assembly_id
+        # self._assembly_manager.RemoveFromLattice(_id)
+
+
+
+    ''' HR 17/03/22 To create duplicate assembly, page, etc., refresh all views
+                    and (optionally) add assmebly to lattice
+                    (can alternatively do later via right-click via reconciliation '''
+    def OnDuplicateAssembly(self, event = None, duplicate_in_lattice = True):
+        print('Running "OnDuplicateAssembly"')
+        ''' Get ID of old active assembly to be duplicated '''
+        old_id = self.assembly.assembly_id
+        ''' Use ID to create duplicate assembly '''
+        self.MakeNewAssemblyPage(id_to_duplicate = old_id)
+
+        ''' Get ID of new duplicate assembly '''
+        new_id = self.assembly.assembly_id
+
+        ''' --- '''
+        ''' All below from "OnFileOpen", to be adapted '''
+        ''' --- '''
+
+        ''' Add to lattice by duplication '''
+        if duplicate_in_lattice:
+            print('Old ID, new ID: ', old_id, new_id)
+            self._assembly_manager.DuplicateInLattice(old_id, new_id)
+            print('Head = ', self.assembly.head)
+
+        ''' Show parts list and lattice '''
+        self.DisplayPartsList()
+
+        ''' Do some tidying up '''
+
+        if self._page.file_open:
+            ''' Clear selector window if necessary '''
+            try:
+                self._page.slct_sizer.Clear(True)
+            except:
+                print("Couldn't clear selector sizer")
+
+            ''' Clear lattice plot if necessary '''
+            try:
+                self.latt_axes.clear()
+            except:
+                print("Couldn't clear lattice axes")
+
+        else:
+            ''' Set "file is open" tag '''
+            self._page.file_open = True
+            self._page.Enable()
+
+        ''' ------------------- '''
+
+        ''' Display lattice and update 3D viewer '''
+        self.DisplayLattice(set_pos = True, called_by = 'OnDuplicateAssembly')
+        # self.Update3DView(selected_items = self.selected_items)
+        self.Update3DView()
 
 
 
@@ -1048,7 +1113,7 @@ class MainWindow(wx.Frame):
 
 
 
-    def OnFileOpen(self, event = None):
+    def OnFileOpen(self, event = None, add_to_lattice = True):
 
         ''' Get STEP filename '''
         # open_filename = self.GetFilename(ender = ["stp", "step"]).split("\\")[-1]
@@ -1070,14 +1135,18 @@ class MainWindow(wx.Frame):
         ''' Wipe existing assembly if one already loaded; replace with empty one '''
         if self._page.file_open:
             ''' Remove old assembly from manager '''
-            self._assembly_manager.remove_assembly(_id)
+            self._assembly_manager.RemoveFromLattice(_id)
 
             ''' Create new assembly + ID and replace link to page '''
             _id, _assembly = self._assembly_manager.new_assembly()
             self._notebook_manager[_page] = _id
-
+            
             ''' Set new assembly to be active one '''
             self.assembly = _assembly
+
+            ''' Rename displayed assembly name '''
+            new_name = _assembly.assembly_name
+            self._notebook.SetPageText(self._notebook.GetSelection(), new_name)
 
         ''' Load data, create nodes and edges, etc. '''
         try:
@@ -1086,15 +1155,9 @@ class MainWindow(wx.Frame):
         except Exception as e:
             print('Could not load file; returning...', e)
             return
-        self._assembly_manager.AddToLattice(_id)
-
-        # ''' OCC 3D data returned here '''
-        # self.assembly.OCC_read_file(open_filename)
-        # print('Loaded 3D data...')
 
         ''' Show parts list and lattice '''
         self.DisplayPartsList()
-
         ''' Do some tidying up '''
 
         if self._page.file_open:
@@ -1102,13 +1165,13 @@ class MainWindow(wx.Frame):
             try:
                 self._page.slct_sizer.Clear(True)
             except:
-                pass
+                print("Couldn't clear selector sizer")
 
             ''' Clear lattice plot if necessary '''
             try:
                 self.latt_axes.clear()
             except:
-                pass
+                print("Couldn't clear lattice axes")
 
         else:
             ''' Set "file is open" tag '''
@@ -1116,9 +1179,14 @@ class MainWindow(wx.Frame):
             self._page.Enable()
 
         ''' ------------------- '''
+        
+        ''' Add to lattice '''
+        if add_to_lattice:
+            print('Adding assembly to lattice')
+            self._assembly_manager.AddToLattice(_id)
+            ''' Display lattice and update 3D viewer '''
+            self.DisplayLattice(set_pos = True, called_by = 'OnFileOpen')
 
-        ''' Display lattice and update 3D viewer '''
-        self.DisplayLattice(set_pos = True, called_by = 'OnFileOpen')
         # self.Update3DView(selected_items = self.selected_items)
         self.Update3DView()
 
@@ -1228,53 +1296,6 @@ class MainWindow(wx.Frame):
 
         if not shapes:
             return
-
-        # selected = self.selected_items
-
-        # ''' Get IDs of 3D shapes '''
-        # to_select = []
-        # print('IDs of item(s) selected:')
-        # for shape in _shapes:
-        #     ''' Inverse dict look-up '''
-        #     # item = [k for k,v in self.assembly.OCC_dict.items() if v == shape][-1]
-        #     ''' HR 19/05/12 New version to look in node dicts for shape '''
-        #     # item = [node for node in self.assembly.nodes if self.assembly.nodes[node]['shape_loc'][0] == shape][-1]
-        #     ''' HR 05/11/21 Updated to account for empty shape field (e.g. for user-created sub-assemblies) '''
-        #     item = [node for node in self.assembly.nodes if 'shape_loc' in self.assembly.nodes[node] and self.assembly.nodes[node]['shape_loc'][0] == shape][-1]
-        #     to_select.append(item)
-        #     print(item)
-
-        # ''' Check if CTRL key pressed; if so, append selected items to existing
-        #     GetModifiers avoids problems with different keyboard layouts...
-        #     ...but is equivalent to ControlDown, see here:
-        #     https://wxpython.org/Phoenix/docs/html/wx.KeyboardState.html#wx.KeyboardState.ControlDown '''
-        # if event.GetModifiers() == wx.MOD_CONTROL:
-        #     print('CTRL held during 3D selection; appending selected item(s)...')
-        #     to_select = set(to_select)
-        #     print('To select item(s):', to_select)
-        #     to_select.update(selected)
-        #     to_select = list(to_select)
-
-        # ''' Freeze (and later thaw) to stop flickering while updating all views '''
-        # self.Freeze()
-
-        # ''' Update parts view
-        #     Use of veto is workaround to avoid ctc.EVT_TREE_SEL_CHANGED event...
-        #     firing for each part selected '''
-        # print('Updating parts view...')
-
-        # # ''' HR Nov 21: Switch added here to avoid multiple methods firing '''
-        # self._page.partTree_ctc.UnselectAll()
-
-        # for item in to_select:
-        #     self.UpdateListSelections(item)
-
-        # ''' Update other views '''
-        # # self.UpdateToggledImages()
-        # # self.UpdateSelectedNodes(called_by = 'OnLeftUp_3D')
-        # # self.Update3DView()
-
-        # self.Thaw()
 
         ''' ------------------------------------
         HR 25/11/21 New GUI update functionality
@@ -1450,8 +1471,8 @@ class MainWindow(wx.Frame):
 
         _id = self.assembly.assembly_id
 
-        print('Trying to clear lattice axes...')
         try:
+            print('Trying to clear lattice axes...')
             self.latt_axes.clear()
             print('Done')
         except Exception as e:
@@ -1995,8 +2016,8 @@ class MainWindow(wx.Frame):
         item = event.GetItem()
         node  = self._page.ctc_dict_inv[item]
 
-        print('Getting image...')
-        print('Node ID = ', node)
+        # print('Getting image...')
+        # print('Node ID = ', node)
 
         selected_items = self.selected_items
 
@@ -2854,7 +2875,6 @@ class MainWindow(wx.Frame):
 
 
     def OnTreeLabelEditEnd(self, event):
-
         text_before = event.GetItem().GetText()
         wx.CallAfter(self.AfterTreeLabelEdit, event, text_before)
         event.Skip()
@@ -2862,7 +2882,6 @@ class MainWindow(wx.Frame):
 
 
     def AfterTreeLabelEdit(self, event, text_before):
-
         item = event.GetItem()
         text = item.GetText()
         if text_before != text:
@@ -2873,7 +2892,6 @@ class MainWindow(wx.Frame):
 
 
     def ClearGUIItems(self):
-
         ''' Destroy all button objects '''
         for button_ in self._page.button_dict:
             obj = self._page.button_dict[button_]
@@ -2895,7 +2913,6 @@ class MainWindow(wx.Frame):
 
 
     def OnAbout(self, event):
-
         ''' Show program info '''
         abt_text = """StrEmbed-6-1: A user interface for manipulation of design configurations\n
             Copyright (C) 2019-2021 Hugh Patrick Rice\n
@@ -2953,7 +2970,6 @@ class MainWindow(wx.Frame):
 
 
     def AfterResize(self, event = None):
-
         ''' HR 06/10/20 ISSUE: Button widths don't resize (although images do)
             when window is resized '''
         try:
@@ -2984,39 +3000,24 @@ class MainWindow(wx.Frame):
 
 
 
-    def OnNewButton(self, event):
+    def OnNewAssembly(self, event):
         self.AddText("New assembly button pressed")
-        self.MakeNewAssembly()
+        self.MakeNewAssemblyPage()
 
 
 
-    def get_new_assembly_name(self, new_id):
-        name = 'Assembly ' + str(new_id)
-        ''' Check name doesn't exist; create new name by increment if so '''
-        names = [a.assembly_name for a in self._assembly_manager._mgr.values()]
-        names.remove(name)
-        while name in names:
-            print('Name already exists')
-            new_id += 1
-            name = 'Assembly ' + str(new_id)
-            continue
-        return name
-
-
-
-    def MakeNewAssembly(self, name = None):
+    def MakeNewAssemblyPage(self, name = None, id_to_duplicate = None):
 
         self.Freeze()
         print('Trying to make new assembly')
 
 
         ''' Create assembly object and add to assembly manager '''
-        new_id, new_assembly = self._assembly_manager.new_assembly()
+        new_id, new_assembly = self._assembly_manager.new_assembly(id_to_duplicate = id_to_duplicate)
 
-        name = self.get_new_assembly_name(new_id)
-
+        # name = self.assembly_manager.get_new_assembly_name(new_id)
+        name = new_assembly.assembly_name
         page = NotebookPanel(self._notebook, new_id, border = self._border)
-
         self._notebook_manager[page] = new_id
 
 
@@ -3028,7 +3029,8 @@ class MainWindow(wx.Frame):
         self._notebook.AddPage(page, text = name, select = True)
         self._page = page
 
-
+        ''' No need to do this, as caught by "OnNotebookPaegChanged" '''
+        # self.assembly = self._assembly_manager._mgr[new_id]
 
         ''' All tab-specific bindings '''
         self._page.partTree_ctc.Bind(wx.EVT_RIGHT_DOWN,          self.OnRightClick)
