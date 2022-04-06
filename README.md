@@ -2,7 +2,7 @@
 
 Go to the latest release *via* the "Releases" tab, then either:
 
-1. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) and run as code in your Python environment.
+1. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) and import into your Python environment.
 2. Download one of the executables (```.exe```) and run as a standalone app by double-click the file; the ```StrEmbed-6-1``` app will run and does not require any other files - or Python - to be installed on your machine.
 
 ___
