@@ -43,7 +43,7 @@ There are several ways to run ```StrEmbed-6-1```, which are described below and 
 
 The above incorporate code (specifically for the 3D viewer) from ```Python-OCC``` [here](https://github.com/tpaviot/pythonocc-core). ```StrEmbed-6_1``` has a large number of dependencies that must also be installed in your environment. Contact the developers of those packages if you encounter problems. The script ```env_setup.txt``` can be run as a batch file in an Anaconda shell to create an environment in which ```StrEmbed-6-1``` will run.
 
-(2) Run as a standalone executable. This does not require you to have Python or any IDE installed. Simply double-click on one of the files ending with  ```.exe``` and the user interface will appear. Please note that two executables are provided, with and without console output for debugging purposes. Please make a record of the output if you encounter problems and wish to contact the developers for help.
+(2) Run as a standalone executable. This does not require you to have Python or any IDE installed. Navigate to the "Releases" tab on the right of this page and download one of the executable files, *i.e.* those ending with  ```.exe```. Once downloaded, double-click on the file (Windows only) and the app will run. Please note that two executables are provided, with and without console output for debugging purposes. If you run the version with a concole and encounter any problems, please make a record of the output and contact the developers if you require help.
 
 Several STEP file examples are provided. The "Images" folder contains images necessary for building the application but not for running it.
 
