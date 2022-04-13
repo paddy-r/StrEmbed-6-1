@@ -84,24 +84,25 @@ from OCC.Core.TDocStd import TDocStd_Document
 from OCC.Core.XCAFDoc import (XCAFDoc_DocumentTool_ShapeTool,
                               XCAFDoc_DocumentTool_ColorTool)
 from OCC.Core.STEPCAFControl import STEPCAFControl_Reader
-from OCC.Core.TDF import TDF_LabelSequence, TDF_Label
 from OCC.Core.TCollection import TCollection_ExtendedString
-# from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
-from OCC.Core.TopLoc import TopLoc_Location
-from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
 
 # from OCC.Extend.TopologyUtils import (discretize_edge, get_sorted_hlr_edges,
                                       # list_of_shapes_to_compound)
 
-from OCC.Display import OCCViewer
-from OCC.Core.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB
 from OCC.Extend import DataExchange
 from OCC.Core.Graphic3d import Graphic3d_BufferType
 
 from OCC.Core.Bnd import Bnd_Box
 from OCC.Core.BRepBndLib import brepbndlib_Add
 # from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+from OCC.Display import OCCViewer
+
+from OCC.Core.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB
+from OCC.Core.TopLoc import TopLoc_Location
+from OCC.Core.TDF import TDF_LabelSequence, TDF_Label
+
 
 ''' HR 09/12/21 Adding PartCompare import to allow shape-based similarity scores '''
 from part_compare import PartCompare, load_from_step
@@ -112,6 +113,47 @@ import pickle
 import copy
 
 import hungarian_algorithm as hungalg
+
+
+''' HR 08/04/22 NOT WORKING; HACKED CLASS DEFINITIONS IN SOURCE FILES '''
+# ''' HR 07/04/22 For overriding method common to several PythonOCC classes;
+#                 single line causes problems, index [3] gives error,
+#                 works well when changed to [-1] '''
+# def _dumps_object(klass):
+#     """ Overwrite default string output for any wrapped object.
+#     By default, __repr__ method returns something like:
+#     <OCC.Core.TopoDS.TopoDS_Shape; proxy of <Swig Object of type 'TopoDS_Shape *' at 0x02BB0758> >
+#     This is too much verbose.
+#     We prefer :
+#     <class 'gp_Pnt'>
+#     or
+#     <class 'TopoDS_Shape'>
+#     """
+#     print('\n  LINE IN "Quantity": ', str(klass.__class__), '\n')
+#     klass_name = str(klass.__class__).split(".")[-1].split("'")[0]
+#     # klass_name = str(klass.__class__).split(".")[3].split("'")[0]
+#     repr_string = "<class '" + klass_name + "'"
+# # for TopoDS_Shape, we also look for the base type
+#     if klass_name == "TopoDS_Shape":
+#         if klass.IsNull():
+#             repr_string += ": Null>"
+#             return repr_string
+#         st = klass.ShapeType()
+#         types = {OCC.Core.TopAbs.TopAbs_VERTEX: "Vertex",
+#                  OCC.Core.TopAbs.TopAbs_SOLID: "Solid",
+#                  OCC.Core.TopAbs.TopAbs_EDGE: "Edge",
+#                  OCC.Core.TopAbs.TopAbs_FACE: "Face",
+#                  OCC.Core.TopAbs.TopAbs_SHELL: "Shell",
+#                  OCC.Core.TopAbs.TopAbs_WIRE: "Wire",
+#                  OCC.Core.TopAbs.TopAbs_COMPOUND: "Compound",
+#                  OCC.Core.TopAbs.TopAbs_COMPSOLID: "Compsolid"}
+#         repr_string += "; Type:%s" % types[st]
+#     elif hasattr(klass, "IsNull"):
+#         if klass.IsNull():
+#             repr_string += "; Null"
+#     repr_string += ">"
+#     print('\n  FULL CLASS NAME: ', repr_string, '\n')
+#     return repr_string
 
 
 
@@ -280,19 +322,90 @@ def get_matching_success(n_a, n_b, M = {}, mu = {}):
 
 
 
+''' HR 06/04/22 UPDATE ON DEEPCOPY OF SWIG OBJECTS, SEE PYTHONOCC ISSUE HERE: https://github.com/tpaviot/pythonocc-core/issues/1097
+                1. First tried wrapping classes causing problems (Quantity_Color, TDF_Label, TopLoc_Location) -> (Quantity_ColorSWIG, etc., see commented code below)
+                    with PicklableSWIG, below, but failed in two ways:
+                    - TopLoc_LocationSWIG.Multiplied(loc) during STEP parsing generates TopLoc_Location, not TopLoc_LocationSWIG, so prevents deepcopying
+                    - Error then also produced during __repr__ (??) of wrapped classes; index [3] is wrong (should be [-1] or something suitable)
+                        in "_dumps_object" method that's common to all three classes
+                2. Eventually hacked source code for all three classes (actually TopLoc, Quantity and TDF) to add self.args to __init__ and __set_state__ and __get_state__;
+                    as in SO answer (see 17/03/22), but __get_state__ as follows, as was getting AttributeError for "args", very hacky but now works
+
+                    if not hasattr(self, 'args'):
+                        self.args = {} '''
+
+''' HR 17/03/22
+    Workaround to allow picking/deep-copying of StepParse;
+    solves problem of error when attempting copy.deepcopy of StepParse:
+        "TypeError: cannot pickle 'SwigPyObject' object"
+    i.e. deepcopy uses pickle, which cannot serialise SteParse,
+    presumably because of PythonOCC contents
+    ---
+    Solution from here: https://stackoverflow.com/questions/9310053/how-to-make-my-swig-extension-module-work-with-pickle
+    --
+    Important bits copied below and adapted into StepParse
+    ---
+    class PickalableC(C, PickalableSWIG):
+
+        def __init__(self, *args):
+            self.args = args
+            C.__init__(self)
+
+    where PickalableSWIG is as in class, below
+    --- '''
+class PicklableSWIG:
+
+    def __setstate__(self, state):
+        self.__init__(*state['args'])
+
+    def __getstate__(self):
+        return {'args': self.args}
+
+
+
+# ''' All classes that need to be copy-enabled '''
+# class TopLoc_LocationSWIG(TopLoc_Location, PicklableSWIG):
+#     def __init__(self, *args):
+#         self.args = args
+#         TopLoc_Location.__init__(self)
+
+# class Quantity_ColorSWIG(Quantity_Color, PicklableSWIG):
+#     def __init__(self, *args):
+#         self.args = args
+#         Quantity_Color.__init__(self)
+
+# class TDF_LabelSWIG(TDF_Label, PicklableSWIG):
+#     def __init__(self, *args):
+#         self.args = args
+#         TDF_Label.__init__(self)
+
+# # class TopoDS_CompoundSWIG(TopoDS_Compound, PicklableSWIG):
+# #     def __init__(self, *args):
+# #         self.args = args
+# #         TopoDS_Compound.__init__(self)
+
+# # class TopoDS_SolidlSWIG(TopoDS_Solid, PicklableSWIG):
+# #     def __init__(self, *args):
+# #         self.args = args
+# #         TopoDS_Solid.__init__(self)
+
+
+
 """
 HR 26/08/2020
 ShapeRenderer adapted from pythonocc script "wxDisplay"
 https://github.com/tpaviot/pythonocc-core
 """
-class ShapeRenderer(OCCViewer.Viewer3d):
+class ShapeRenderer(OCCViewer.Viewer3d, PicklableSWIG):
     '''
     HR 17/7/20
     Adapted/simplified from OffScreenRenderer in OCCViewer <- OCC.Display
     Dumps render of shape to jpeg file
     '''
-    def __init__(self, screen_size = (1000,1000)):
-        super().__init__()
+    def __init__(self, screen_size = (1000,1000), *args):
+        self.args = args
+        OCCViewer.Viewer3d.__init__(self)
+
         self.Create()
         self.View.SetBackgroundColor(Quantity_Color(Quantity_NOC_WHITE))
         self.SetSize(screen_size[0], screen_size[1])
@@ -310,9 +423,12 @@ class ShapeRenderer(OCCViewer.Viewer3d):
 class AssemblyManager():
 
     def __init__(self, viewer = None, axes = None, ic = None, dc = None, sc = None, lc = None, lattice_plot_mode = True, *args, **kwargs):
+        ''' Dict of all assembly IDs to SP instances '''
         self._mgr = {}
-        self._lattice = StepParse('lattice')
+        ''' List of IDs of all assemblies in lattice '''
+        self._assemblies_in_lattice = []
 
+        self._lattice = StepParse('lattice')
         self.pc = PartCompare()
 
         ''' -----------------------------
@@ -335,6 +451,7 @@ class AssemblyManager():
 
         self.SAVE_PATH_DEFAULT = os.getcwd()
         self.SAVE_FILENAME_DEFAULT = 'project.xlsx'
+        self.ASSEMBLY_EXTENSION_DEFAULT = 'asy'
 
         # self.new_assembly_text = 'Unnamed item'
         # self.new_part_text     = 'Unnamed item'
@@ -424,35 +541,120 @@ class AssemblyManager():
 
 
 
-    def new_assembly(self, dominant = None, id_to_duplicate = None):
+    ''' Create new assembly (StepParse), with auto name and ID generation '''
+    def new_assembly(self, dominant = None):
+
         ''' Get assembly ID and name '''
         assembly_id = self.new_assembly_id
-        assembly_name = self.get_new_assembly_name(assembly_id)
+        # assembly_name = self.get_new_assembly_name(assembly_id)
+        assembly = StepParse(assembly_id)
 
-        ''' Switch for duplication:
-            - If not duplicate, give ID as argument
-            - If duplicate, set afterwards '''
-        if not id_to_duplicate:
-            assembly = StepParse(assembly_id)
-        elif id_to_duplicate in self._mgr:
-            assembly_to_duplicate = self._mgr[id_to_duplicate]
-            assembly = copy.deepcopy(assembly_to_duplicate)
-            assembly.assembly_id = assembly_id
-        else:
-            print('Assembly ID to duplicate not found; returning None')
-            return None
-
-        ''' In both (valid) cases, reset name (lazy workaround for duplication case;
-            can be tidied up in StepParse later) '''
-        assembly.assembly_name = assembly_name
-
-        self._mgr.update({assembly_id:assembly})
+        ''' Add to manager '''
+        self._mgr[assembly_id] = assembly
         print('Created new assembly with ID: ', assembly_id)
 
         assembly.enforce_binary = self.ENFORCE_BINARY_DEFAULT
 
         return assembly_id, assembly
 
+
+
+    ''' HR 08/04/22 To create new assembly based on existing one;
+                    functionality requires copy.deepcopy of SWIG objects,
+                    see PythonOCC issue: https://github.com/tpaviot/pythonocc-core/issues/1097;
+                    returns same as "new_assembly", for consistency '''
+    def duplicate_assembly(self, id_to_duplicate):
+
+        if id_to_duplicate not in self._mgr:
+            print('Assembly not present, returning None')
+            return None
+
+        ass_old = self._mgr[id_to_duplicate]
+
+        ''' Create mew name/ID to overwrite... '''
+        id_new, ass_new = self.new_assembly()
+        name_new = ass_new.assembly_name
+
+        ''' ...then copy everything wholesale, via deepcopy of __dict__... '''
+        ass_new.__dict__ = copy.deepcopy(ass_old.__dict__)
+
+        ''' ...workaround here as colours don't seem to be copied properly... '''
+        for node in ass_old.nodes:
+            ''' In case some are empty... '''
+            if ass_old.nodes[node]['shape_loc']:
+                ''' ...then copy over; must copy existing shape and old colour, as tuple is immutable '''
+                ass_new.nodes[node]['shape_loc'] = (ass_new.nodes[node]['shape_loc'][0], ass_old.nodes[node]['shape_loc'][1])
+
+        ''' DEBUGGING BLOCK: COPY EACH DICT ENTRY AND CHECK FOR EXCEPTIONS '''
+        # ''' Try copying each dict entry individually '''
+        # new_dict = {}
+        # for k,v in ass_old.__dict__.items():
+        #     try:
+        #         new_dict[k] = copy.deepcopy(v)
+        #         print('Copied ', k,v)
+        #         print( 'to: ', k,new_dict[k])
+        #     except Exception as e:
+        #         print(' Could not copy ', k,v, '; exception follows')
+        #         print(e)
+        # ''' Copy everything over '''
+        # ass_new.__dict__.update(new_dict)
+
+        ''' ...lastly, overwrite name and ID with new ones,
+            as will have been written over during __dict__ duplication above '''
+        ass_new.assembly_name = name_new
+        ass_new.assembly_id = id_new
+
+        return id_new, ass_new
+
+
+
+    ''' HR 11/04/22 To import pickled StepParse file '''
+    def import_assembly(self, filename):
+        print('Trying to import assembly from file: ', filename)
+
+        try:
+            with open(filename, 'rb') as handle:
+                ass_imported = pickle.load(handle)
+                print('Assembly imported')
+        except Exception as e:
+            print('Could not import assembly, returning None; exception follows')
+            print(e)
+
+        ''' Overwrite assembly ID in file in line with manager IDs '''
+        old_id = ass_imported.assembly_id
+        new_id = self.new_assembly_id
+        new_name = self.get_new_assembly_name(new_id)
+        ass_imported.assembly_id = new_id
+        ass_imported.assembly_name = new_name
+
+        ''' Add to manager '''
+        self._mgr[new_id] = ass_imported
+        print('Imported assembly with new ID: ', new_id, '(was', old_id, 'in file)')
+
+        ''' Return ID and name, in common with "new_assembly" and "duplicate_assembly" '''
+        return new_id, ass_imported
+
+
+
+    ''' HR 12/04/22 To export StepParse via pickle '''
+    def save_assembly(self, filename, ID):
+        print('Trying to export assembly ', ID, 'to file: ', filename)
+        if not ID in self._mgr:
+            print('Assembly not found, returning False')
+            return False
+
+        assembly_to_save = self._mgr[ID]
+
+        try:
+            ''' Save done here '''
+            with open(filename, 'wb') as handle:
+                pickle.dump(assembly_to_save, handle, protocol = pickle.HIGHEST_PROTOCOL)
+            print('Assembly exported, returning True')
+            return True
+        except Exception as e:
+            print('Could not export file, returning False; exception follows')
+            print(e)
+            return False
 
 
 
@@ -928,20 +1130,21 @@ class AssemblyManager():
                     including PartFind shape comparison (optionally) '''
     def AddToLattice(self, _id, dominant = None, *args, **kwargs):
 
-        if not self._mgr:
-            print('Cannot add assembly to lattice: no assembly in manager')
-            return False
+        '''
+        HR 13/04/22 Refactored validation/typing section here
+                    to account for "_assemblies_in_lattice" list;
+                    decision required if either:
+                        (1) Only ID in _mgr is "_id", or
+                        (2) "dominant" not in lattice
+        '''
 
-        if _id not in self._mgr:
-            print('ID: ', _id)
-            print('Assembly not in manager; not proceeding')
-            return False
+
 
         ''' If first assembly being added, just map nodes and edges directly
             No need to do any similarity calculations '''
-        if len(self._mgr) == 1:
+        def simple_add(_id):
 
-            print('Adding first assembly to lattice')
+            print('"Simple add": Adding first assembly to lattice')
             a1 = self._mgr[_id]
 
             for node in a1.nodes:
@@ -956,17 +1159,36 @@ class AssemblyManager():
                 self._lattice.add_edge(u,v)
                 self._lattice.edges[(u,v)].update({_id:(n1,n2)})
 
-            return True
+            ''' HR 13/04/22 Added this list everywhere to track IDs present in lattice '''
+            self._assemblies_in_lattice.append(_id)
 
 
 
-        ''' If no dominant assembly specified/not found
-            get the one with lowest ID '''
-        if (not dominant) or (dominant not in self._mgr):
-            print('Dominant assembly not specified or not found in manager; defaulting to assembly with lowest ID')
-            idlist = sorted([el for el in self._mgr])
-            idlist.remove(_id)
-            dominant = idlist[0]
+        if _id not in self._mgr:
+            print('ID: ', _id)
+            print('Assembly not in manager; returning False')
+            return False
+
+        if _id in self._assemblies_in_lattice:
+            print('Assembly', _id, 'already in lattice; returning False')
+            return False
+
+        if not dominant:
+            try:
+                ''' Get first ID (numerically) from lattice list '''
+                dominant = sorted([el for el in self._assemblies_in_lattice])[0]
+                print('No ID specified for comparison; defaulting to first in lattice list')
+            except:
+                print('No IDs in lattice list; adding assembly')
+                simple_add(_id)
+                self._assemblies_in_lattice.append(_id)
+                return True
+
+        # if (not dominant) or (dominant not in self._assemblies_in_lattice):
+        #     print('Dominant assembly not specified or not found in manager; defaulting to assembly with lowest ID')
+        #     idlist = sorted([el for el in self._mgr])
+        #     # idlist.remove(_id)
+        #     dominant = idlist[0]
 
 
 
@@ -1038,6 +1260,9 @@ class AssemblyManager():
                 ''' Lastly, create new entry '''
                 self._lattice.edges[(m1,m2)].update({id2:(n1,n2)})
 
+        ''' Add to lattice list '''
+        self._assemblies_in_lattice.append(id1)
+
         return True
 
 
@@ -1062,13 +1287,13 @@ class AssemblyManager():
         ''' ----------------------- '''
         ''' Preparatory stuff '''
 
-        if not self._mgr:
-            print('Cannot remove assembly from lattice: no assembly in manager')
-            return False
+        # if not self._mgr:
+        #     print('Cannot remove assembly from lattice: no assembly in manager')
+        #     return False
 
-        if _id not in self._mgr:
+        if _id not in self._assemblies_in_lattice:
             print('ID: ', _id)
-            print('Cannot remove assembly from manager as assembly not present')
+            print('Cannot remove assembly from lattice list as not present')
             return False
 
         ''' ----------------------- '''
@@ -1077,7 +1302,7 @@ class AssemblyManager():
         # self._mgr.pop(_id)
 
         ''' CASE 1: Lattice only contains single assembly '''
-        if len(self._mgr) == 1:
+        if len(self._assemblies_in_lattice) == 1:
             print("Only one assembly in lattice, removing all nodes and edges")
             nodes = [node for node in self._lattice.nodes]
             ''' Edges will be removed automatically when their nodes are removed '''
@@ -1090,39 +1315,44 @@ class AssemblyManager():
         edges = list(self._lattice.edges)
 
         for edge in edges:
-            _dict = self._lattice.edges[edge]
-            if _id in _dict:
+            edge_dict = self._lattice.edges[edge]
+            if _id in edge_dict:
                 ''' Remove entry for assembly in lattice dict... '''
-                _dict.pop(_id)
-                if not any(ass in _dict for ass in self._mgr):
+                edge_dict.pop(_id)
+                if not any(ass in edge_dict for ass in self._assemblies_in_lattice):
                     ''' ...and remove entirely if no other assemblies in dict '''
                     self._lattice.remove_edge(edge[0],edge[1])
 
         for node in nodes:
-            dict = self._lattice.nodes[node]
-            if _id in _dict:
+            node_dict = self._lattice.nodes[node]
+            if _id in node_dict:
                 ''' Remove entry for assembly in lattice dict... '''
-                dict.pop(_id)
-                if not any(ass in dict for ass in self._mgr):
+                node_dict.pop(_id)
+                if not any(ass in node_dict for ass in self._assemblies_in_lattice):
                     ''' ...and remove entirely if no other assemblies in dict '''
                     self._lattice.remove_node(node)
 
-        ''' Remove from manager '''
-        try:
-            print('Removing assembly from manager...')
-            self._mgr.pop(_id)
-            print('Done')
-        except Exception as e:
-            print('Could not remove assembly from manager; exception follows')
-            print(e)
+        ''' HR 13/04/22 Must not remove from _mgr!
+                        That is covered by "DeleteAssembly '''
+        # ''' Remove from manager '''
+        # try:
+        #     print('Removing assembly from manager...')
+        #     self._mgr.pop(_id)
+        #     print('Done')
+        # except Exception as e:
+        #     print('Could not remove assembly from manager; exception follows')
+        #     print(e)
+
+        ''' Remove from _mgr and lattice list '''
+        self._assemblies_in_lattice.remove(_id)
 
         return True
 
 
 
     ''' HR 18/03/22 To duplicate existing assembly in lattice
-                    - id1 = ID of existing assembly being duplicated
-                    - id2 = ID of duplicate assembly being added '''
+                    - id1 = ID of existing (old) assembly being duplicated
+                    - id2 = ID of duplicate (new) assembly being added '''
     def DuplicateInLattice(self, id1, id2):
         ''' Duplicate all node references '''
         for node in self._lattice.nodes:
@@ -1144,6 +1374,18 @@ class AssemblyManager():
             print(self._lattice.nodes[node])
         for edge in self._lattice.edges:
             print(self._lattice.edges[edge])
+
+        ''' Append to lattice list '''
+        self._assemblies_in_lattice.append(id2)
+
+
+
+    ''' HR 13/04/22 Extra method to differentiate between "delete" and "remove from lattice",
+                    as second can happen without the first '''
+    def DeleteAssembly(self, _id):
+        print('Running DeleteAssembly')
+        self.RemoveFromLattice(_id)
+        self._mgr.pop(_id)
 
 
 
@@ -2089,435 +2331,6 @@ class AssemblyManager():
 
 
 
-    ''' ------------------------------------------------------------------
-        ALL OLDER (PRE-2022) RECON STUFF BELOW THIS
-        ------------------------------------------------------------------ '''
-
-
-
-    # def map_nodes(self, a1, a2, **kwargs):
-
-    #     _mapped = {}
-
-
-
-    #     '''
-    #     1.  Easy part of mapping: exact 1:1 mappings
-    #         and get dupe map for any unmapped exact matches
-    #     '''
-    #     _dupemap, _newitems = self.map_exact(a1,a2)
-    #     _mapped.update(_newitems)
-
-
-
-    #     ''' Then calculate similarity matrix for each duplicate group
-    #         This effectively allows matching by similarity components
-    #         other than (but also including) exact node-name matches,
-    #         e.g. parent node names (or whatever the user specifies
-    #         via "weight" values in "node_sim") '''
-
-    #     _sim = {}
-    #     for k,v in _dupemap.items():
-    #         _sim[k] = self.node_sim(a1, a2, k, v)
-
-
-
-    #     ''' Get total similarity (i.e. sum of all measures)
-    #         "_sim" contains each separately; [0] element is total value '''
-    #     _totals = {k:v[0] for k,v in _sim.items()}
-
-
-
-    #     '''
-    #     2.  Get all singular mappings within duplicate groupings,
-    #         i.e. occurrence of max value is one, and remove from grouping
-    #     '''
-
-    #     _tomap = {k:v for k,v in _dupemap.items()}
-    #     _totalscopy = {k:v for k,v in _totals.items()}
-
-    #     for k,v in _tomap.items():
-
-    #         ''' Get singular mappings and update global map '''
-    #         _newlymapped = self.get_by_max(_totals[k])
-
-    #         ''' Remove old/create new dict items if any mappings made above '''
-    #         if _newlymapped:
-
-    #             ''' Add new entries to master map '''
-    #             _mapped.update(_newlymapped)
-
-    #             ''' Get new entries with already-mapped items removed... '''
-    #             _newdupe, _newtotals = self.remap_entries(k, v, _newlymapped, _totalscopy[k])
-
-    #             ''' ...then update dicts with new entries '''
-    #             if _newdupe:
-    #                 _dupemap.update(_newdupe)
-    #             if _newtotals:
-    #                 _totals.update(_newtotals)
-
-    #             ''' Remove old entries with "pop";
-    #                 'None' default in "pop" avoids exception if item not found '''
-    #             _dupemap.pop(k, None)
-    #             _totals.pop(k, None)
-
-
-
-    #     for k,v in _totals.items():
-
-    #         ''' Reform sub-groupings within each duplicate grouping
-    #             "_valuelen" should be two or more for all entries now,
-    #             as all single-occurrence values removed above '''
-
-    #         _newentries = self.reform_entries(k, _dupemap[k], _totals[k])
-    #         _dupemap.pop(k, None)
-    #         _dupemap.update(_newentries)
-
-
-
-    #     '''
-    #     3.  Map remaining exact duplicate groupings, which all now have v = 1 due to reforming above
-    #     '''
-
-    #     _tomap = {k:v for k,v in _dupemap.items()}
-
-    #     for k,v in _tomap.items():
-
-    #         ''' Remove from map of duplicates '''
-    #         _dupemap.pop(k)
-
-    #         _newones = self.map_multi_grouping(k, v)
-    #         _mapped.update(_newones)
-
-
-
-    #     ''' Put together all unmapped items '''
-    #     _u1 = [el for el in a1.nodes if el not in _mapped]
-    #     _u2 = [el for el in a2.nodes if el not in _mapped.values()]
-
-
-
-    #     '''
-    #     4.  Now need to continue mapping all nodes without exact label matches
-    #     '''
-
-    #     ''' Get total similarity (i.e. sum of all measures), currently element [0] '''
-    #     if _u1 and _u2:
-    #         _sim_u = self.node_sim(a1, a2, _u1, _u2, weight = [1,0,1,0,0])[0]
-
-    #         ''' First job, as in previous sections: get any easy mappings where
-    #             max sim value appears once, and remove from dict '''
-    #         _newmap = self.get_by_max(_sim_u)
-    #         if _newmap:
-    #             _mapped.update(_newmap)
-
-    #             for node1 in _newmap:
-    #                 _u1.remove(node1)
-    #             for node2 in _newmap.values():
-    #                 _u2.remove(node2)
-
-    #             _dupenew, _simnew = self.remap_entries(_u1, _u2, _newmap, _sim_u)
-    #             _dupemap.update(_dupenew)
-
-    #             # ''' Next stage is to get sim groupings
-    #             #     i.e. where max sim value appears more than once '''
-    #             # _newentries = self.reform_entries(tuple(_u1), tuple(_u2), _simnew)
-    #             # print('New sim map by reforming: ', _newentries)
-
-
-
-    #     # return _mapped, (_u1, _u2), _sim, _dupemap, _totals, _tomap, _simnew
-    #     return _mapped, (_u1, _u2)
-
-
-
-    # def node_sim(self, a1, a2, nodes1 = None, nodes2 = None, weight = [1,0,1,0,0], C1 = 0, C2 = 0, field = 'occ_name'):
-    #     ''' Weights apply to similarity of following metrics (by index):
-    #         0. Depth of nodes in tree (i.e. from root)
-    #         1. Number of siblings
-    #         2. Number of children
-    #         3. Name of parent '''
-
-    #     print('Running "node_sim"')
-
-    #     if not nodes1:
-    #         nodes1 = a1.nodes
-    #     if not nodes2:
-    #         nodes2 = a2.nodes
-
-    #     # if type(nodes1) is not list:
-    #     #     nodes1 = [nodes1]
-    #     # if type(nodes2) is not list:
-    #     #     nodes2 = [nodes2]
-
-    #     _r1 = a1.get_root()
-    #     _r2 = a2.get_root()
-
-    #     _sim_label = {}
-    #     _sim_depth = {}
-    #     _sim_sibs = {}
-    #     _sim_children = {}
-    #     _sim_parent = {}
-    #     _sim = {}
-
-    #     for n1 in nodes1:
-    #         _sim_label[n1] = {}
-    #         _sim_depth[n1] = {}
-    #         _sim_sibs[n1] = {}
-    #         _sim_children[n1] = {}
-    #         _sim_parent[n1] = {}
-    #         _sim[n1] = {}
-
-    #         for n2 in nodes2:
-
-    #             ''' Get node label similarity '''
-    #             # print('n1, n2, field:')
-    #             # print(n1, n2, field)
-
-    #             # _sim_label[n1][n2] = self.similarity_strings(a1.nodes[n1][field], a2.nodes[n2][field])[1]
-    #             _sim_label[n1][n2] = self.similarity_strings(a1.assembly_id, a2.assembly_id, n1, n2)[1]
-
-
-
-    #             ''' Get tree-depth similarity '''
-    #             _d1 = nx.shortest_path_length(a1, _r1, n1)
-    #             _d2 = nx.shortest_path_length(a2, _r2, n2)
-    #             if (_d1 == 0) and (_d2 == 0):
-    #                 c = C1
-    #             elif (_d1 == 0) != (_d2 == 0):
-    #                 c = C2
-    #             else:
-    #                 c = min(_d1, _d2)/max(_d1, _d2)
-    #             _sim_depth[n1][n2] = c
-
-
-
-    #             ''' Get parents, where None is default if no parent... '''
-    #             _p1 = next(a1.predecessors(n1), None)
-    #             _p2 = next(a2.predecessors(n2), None)
-    #             ''' ...then get parent label similarity, if both parents exist '''
-    #             if (_p1 == None) and (_p2 == None):
-    #                 c = C1
-    #             elif (_p1 == None) != (_p2 == None):
-    #                 c = C2
-    #             else:
-    #                 try:
-    #                     c = self.similarity_strings(a1.nodes[_p1][field], a2.nodes[_p2][field])[1]
-    #                 except:
-    #                     c = 0
-    #             _sim_parent[n1][n2] = c
-
-
-
-    #             ''' Get number of siblings... '''
-    #             try:
-    #                 _ns1 = len([el for el in a1.successors(_p1)]) - 1
-    #                 _ns2 = len([el for el in a2.successors(_p2)]) - 1
-    #             except:
-    #                 _ns1 = 0
-    #                 _ns2 = 0
-    #             ''' ...then get similarity '''
-    #             if (_ns1 == 0) and (_ns2 == 0):
-    #                 c = C1
-    #             elif (_ns1 == 0) != (_ns2 == 0):
-    #                 c = C2
-    #             else:
-    #                 c = min(_ns1, _ns2)/max(_ns1, _ns2)
-    #             _sim_sibs[n1][n2] = c
-
-
-
-    #             ''' Get number of children... '''
-    #             _nc1 = len([el for el in a1.successors(n1)])
-    #             _nc2 = len([el for el in a2.successors(n2)])
-    #             ''' ...then get similarity '''
-    #             if (_nc1 == 0) and (_nc2 == 0):
-    #                 c = C1
-    #             elif (_nc1 == 0) != (_nc2 == 0):
-    #                 c = C2
-    #             else:
-    #                 c = min(_nc1, _nc2)/max(_nc1, _nc2)
-    #             _sim_children[n1][n2] = c
-
-
-    #             _norm = sum(weight)
-    #             ''' Get total (aggregate) similarity '''
-    #             _sim[n1][n2] = (_sim_label[n1][n2]*weight[0] \
-    #                     + _sim_depth[n1][n2]*weight[1] \
-    #                     + _sim_parent[n1][n2]*weight[2] \
-    #                     + _sim_sibs[n1][n2]*weight[3] \
-    #                     + _sim_children[n1][n2]*weight[4])/_norm
-
-    #     return _sim, _sim_label, _sim_depth, _sim_parent, _sim_sibs, _sim_children
-
-
-
-    # ''' Get all mappings by exact matching of field '''
-    # def map_exact(self, a1, a2, nodes1 = None, nodes2 = None, _field = 'occ_name'):
-    #     print('Running "map_exact"')
-
-    #     if (not nodes1) and (not nodes2):
-    #         nodes1 = a1.nodes
-    #         nodes2 = a2.nodes
-    #     elif (not nodes1) != (not nodes2):
-    #         return None
-
-    #     _map = {}
-
-    #     _values = set([a1.nodes[el][_field] for el in a1.nodes if _field in a1.nodes[el]])
-    #     _field_dict = {}
-
-    #     for el in _values:
-    #         _n1 = [_el for _el in a1.nodes if _field in a1.nodes[_el] and a1.nodes[_el][_field] == el]
-    #         _n2 = [_el for _el in a2.nodes if _field in a2.nodes[_el] and a2.nodes[_el][_field] == el]
-    #         if _n1 and _n2:
-    #             if len(_n1) == 1 and len(_n2) == 1:
-    #                 ''' If single-value mapping, then map... '''
-    #                 if _n1[0] not in _map:
-    #                     _map[_n1[0]] = _n2[0]
-    #             else:
-    #                 ''' ...else create dupe dict entry '''
-    #                 _field_dict[tuple(_n1)] = tuple(_n2)
-
-    #     return _field_dict, _map
-
-
-
-    # ''' Get mappings by max value
-    #     If "singles_only" is true, only map for single-occurrence max sim values
-    #     Else map anyway, which means first node2 found with max sim value is mapped '''
-    # def get_by_max(self, _sim, singles_only = True):
-    #     print('Running "get_by_max"')
-
-    #     _map = {}
-
-    #     nodes1 = _sim.keys()
-
-    #     ''' Loop over node1 items, which are contained in key of "_sim" '''
-    #     for node1 in nodes1:
-    #         _simdict = _sim[node1]
-    #         ''' Remove already-mapped entries '''
-    #         for _done2 in _map.values():
-    #             _simdict.pop(_done2, None)
-    #         ''' Short-circuit if _simdict empty
-    #             This will happen when fewer n1 than n2 '''
-    #         if not _simdict:
-    #             return _map
-
-    #         _max = max([el for el in _simdict.values()])
-    #         _occ = sum(value == _max for value in _simdict.values())
-
-    #         ''' Get valid (i.e. not already mapped) k-v pairs in simdict '''
-    #         if (singles_only and _occ == 1) or not singles_only:
-    #             node2 = [_k for _k,_v in _simdict.items() if _v == _max][0]
-    #             _map[node1] = node2
-
-    #     return _map
-
-
-
-    # def remap_entries(self, k, v, _dupe, _sim):
-    #     print('Running "remap_entries"')
-
-    #     ''' Start building new dupe map elements... '''
-    #     _toremove1 = [el for el in _dupe]
-    #     _toremove2 = [el for el in _dupe.values()]
-
-    #     _n1 = tuple([el for el in k if el not in _toremove1])
-    #     _n2 = tuple([el for el in v if el not in _toremove2])
-
-    #     ''' ...and new total sim dict entry '''
-    #     _newv = {_k:_v for _k,_v in _sim.items() if _k in _n1}
-    #     _klist = list(_newv)
-    #     for el in _klist:
-    #         for _el in _toremove2:
-    #             if _el in _newv[el]:
-    #                 _newv[el].pop(_el, None)
-
-    #     _dupenew = {}
-    #     _simnew = {}
-    #     ''' Check that n1 and n2 both have items in, otherwise would be redundant... '''
-    #     if (len(_n1) > 0) and (len(_n2) > 0):
-    #         ''' ...then actually create entries... '''
-    #         _dupenew[_n1] = _n2
-    #         _simnew[_n1] = _newv
-
-    #     return _dupenew, _simnew
-
-
-
-    # ''' HR 24/11/20
-    #     reform_entries not working as intended when tested with torch assembly
-    #     and HHC's alternative assembly with four bulbs
-    #     Problem is matching nodes within multiplicity groupings '''
-    # def reform_entries(self, nodes1, nodes2, _sim):
-    #     print('Running "reform_entries"')
-
-    #     nodes1 = list(nodes1)
-    #     nodes2 = list(nodes2)
-
-    #     ''' HR 26/11/20 Workaround to avoid problems for node sets with differing sizes
-    #         Larger problems with this method remain, as described above '''
-    #     if len(nodes1) != len(nodes2):
-    #         return {tuple(nodes1):tuple(nodes2)}
-
-    #     _first = nodes1[0]
-    #     _firstdict = _sim[_first]
-    #     _firstvalueset = set(_firstdict.values())
-
-    #     if len(_firstvalueset) == 1:
-    #         return {tuple(nodes1):tuple(nodes2)}
-
-    #     _sims = list(_firstdict.values())
-
-    #     _newentries = {}
-
-    #     for el in _firstvalueset:
-
-    #         _i = [i for i,val in enumerate(_sims) if val == el]
-    #         _n1 = [nodes1[i] for i in _i]
-    #         _n2 = [nodes2[i] for i in _i]
-
-    #         ''' Reform grouping; no need to rebuild totals dict as not used after this '''
-    #         _newentries[tuple(_n1)] = tuple(_n2)
-
-    #     return _newentries
-
-
-
-    # ''' Map same-sim-value grouping
-    #     (a) by same node IDs or
-    #     (b) in numerical order '''
-    # def map_multi_grouping(self, k, v):
-    #     print('Running "map_multi_grouping"')
-
-    #     _toremove = []
-    #     _newmap = {}
-
-    #     _klist = sorted([el for el in k])
-    #     _vlist = sorted([el for el in v])
-
-    #     ''' First match any with the same IDs... '''
-    #     for el in _klist:
-    #         if el in _vlist:
-    #             _newmap[el] = el
-    #             _toremove.append(el)
-
-    #     for el in _toremove:
-    #         _klist.remove(el)
-    #         _vlist.remove(el)
-
-    #     ''' ...then match the remainder in numerical order
-    #         N.B. "zip" truncates to length of smaller list '''
-    #     if _klist and _vlist:
-    #         _remainder = dict(zip(_klist, _vlist))
-    #         for _k,_v in _remainder.items():
-    #             _newmap[_k] = _v
-
-    #     return _newmap
-
-
-
     ''' ----------------------------------------------------------------------
         ALL GRAPH/LATTICE PLOT METHODS HERE
         ----------------------------------------------------------------------
@@ -2793,7 +2606,7 @@ class AssemblyManager():
             print('Done')
         except:
             print('...could not create Excel file; creating default file name')
-            save_file = save_file_default
+            save_file = self.SAVE_FILENAME_DEFAULT
             try:
                 workbook = xlsxwriter.Workbook(save_file)
             except:
@@ -2884,36 +2697,9 @@ class AssemblyManager():
 
 
 
-''' HR 17/03/22
-    Workaround to allow picking/deep-copying of StepParse;
-    solves problem of error when attempting copy.deepcopy of StepParse:
-        "TypeError: cannot pickle 'SwigPyObject' object"
-    i.e. deepcopy uses pickle, which cannot serialise SteParse,
-    presumably because of PythonOCC contents
-    ---
-    Solution from here: https://stackoverflow.com/questions/9310053/how-to-make-my-swig-extension-module-work-with-pickle
-    --
-    Important bits copied below and adapted into StepParse
-    ---
-    class PickalableC(C, PickalableSWIG):
-
-        def __init__(self, *args):
-            self.args = args
-            C.__init__(self)
-
-    where PickalableSWIG is as in class, below
-    --- '''
-class PicklableSWIG:
-
-    def __setstate__(self, state):
-        self.__init__(*state['args'])
-
-    def __getstate__(self):
-        return {'args': self.args}
 
 
-
-class StepParse(nx.DiGraph, PicklableSWIG):
+class StepParse(nx.DiGraph):
 
     def __init__(self, assembly_id = None, *args, **kwargs):
 
@@ -3728,7 +3514,7 @@ class StepParse(nx.DiGraph, PicklableSWIG):
                                   'occ_name': name_sub,
                                   'shape_raw': (shape_sub, loc),
                                   'shape_loc': (BRepBuilderAPI_Transform(shape_sub, loc.Transformation()).Shape(), c),
-                                  'screen_name':  self.get_screen_name(name_sub, shape_sub),
+                                  'screen_name': self.get_screen_name(name_sub, shape_sub),
                                   'is_subshape': True,
                                   'is_product': False}
                     self.add_node(node, **attr_dict)
@@ -3945,7 +3731,6 @@ class StepParse(nx.DiGraph, PicklableSWIG):
         root = self.get_root(node)
         depth = nx.shortest_path_length(self, root, node)
         return depth
-
 
 
     def move_node(self, node, new_parent):

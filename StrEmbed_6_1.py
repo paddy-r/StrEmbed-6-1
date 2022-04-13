@@ -72,14 +72,14 @@ import matplotlib as mpl
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
 
-# Ordered dictionary
-from collections import OrderedDict as odict
+# # Ordered dictionary
+# from collections import OrderedDict as odict
 
 # Regular expressions
 import re
 
 # OS operations for exception-free file checking
-import os.path
+import os
 
 # import shutil
 
@@ -94,13 +94,16 @@ except:
     pass
 
 # For STEP import
-from step_parse_6_1 import StepParse, AssemblyManager, ShapeRenderer
+# from step_parse_6_1 import StepParse, AssemblyManager, ShapeRenderer
+from step_parse_6_1 import StepParse, AssemblyManager
 
 # import matplotlib.pyplot as plt
 import numpy as np
 # from scipy.special import comb
 
 import images
+
+import time
 
 # For 3D CAD viewer based on python-occ
 from OCC.Display import OCCViewer
@@ -251,8 +254,8 @@ class MyBaseViewer(wxDisplay.wxBaseViewer):
     Some code duplication from Pythonocc here:
     https://github.com/tpaviot/pythonocc-core '''
 class MyViewer3d(wxDisplay.wxViewer3d):
-    def __init__(self, *kargs):
-        MyBaseViewer.__init__(self, *kargs)
+    def __init__(self, *kwargs):
+        MyBaseViewer.__init__(self, *kwargs)
 
         self._drawbox = False
         self._zoom_area = False
@@ -374,7 +377,10 @@ class NotebookPanel(wx.Panel):
         ''' Set up image-view grid, where "rows = 0" means the sizer updates dynamically
             according to the number of elements it holds '''
         self.image_cols = 4
-        self.slct_sizer = wx.FlexGridSizer(cols = self.image_cols, rows = 0, hgap = 5, vgap = 5)
+        self.slct_sizer = wx.FlexGridSizer(cols = self.image_cols,
+                                           rows = 0,
+                                           hgap = 5,
+                                           vgap = 5)
 
         self.slct_panel.SetSizer(self.slct_sizer)
 
@@ -417,12 +423,26 @@ class DataEntryDialog(wx.Dialog):
         wx.Dialog.__init__(self, parent, wx.ID_ANY, "Node data entry", size= (400,180))
         self.panel = wx.Panel(self,wx.ID_ANY)
 
-        self.lblfield = wx.StaticText(self.panel, label = "Field name:", pos = (20,20))
-        self.field = wx.TextCtrl(self.panel, value = "", pos = (110,20), size = (250,-1))
-        self.lblvalue = wx.StaticText(self.panel, label = "Value:", pos = (20,60))
-        self.value = wx.TextCtrl(self.panel, value = "", pos = (110,60), size = (250,-1))
-        self.okButton = wx.Button(self.panel, label = "OK", pos = (110,100))
-        self.closeButton = wx.Button(self.panel, label = "Cancel", pos = (210,100))
+        self.lblfield = wx.StaticText(self.panel,
+                                      label = "Field name:",
+                                      pos = (20,20))
+        self.field = wx.TextCtrl(self.panel,
+                                 value = "",
+                                 pos = (110,20),
+                                 size = (250,-1))
+        self.lblvalue = wx.StaticText(self.panel,
+                                      label = "Value:",
+                                      pos = (20,60))
+        self.value = wx.TextCtrl(self.panel,
+                                 value = "",
+                                 pos = (110,60),
+                                 size = (250,-1))
+        self.okButton = wx.Button(self.panel,
+                                  label = "OK",
+                                  pos = (110,100))
+        self.closeButton = wx.Button(self.panel,
+                                     label = "Cancel",
+                                     pos = (210,100))
         self.okButton.Bind(wx.EVT_BUTTON, self.OnOK)
         self.closeButton.Bind(wx.EVT_BUTTON, self.OnQuit)
         self.Bind(wx.EVT_CLOSE, self.OnQuit)
@@ -463,7 +483,9 @@ class MainWindow(wx.Frame):
         self.SetBackgroundColour('white')
         # self.SetIcon(wx.Icon(wx.ArtProvider.GetBitmap(wx.ART_PLUS)))
         # self.SetIcon(wx.Icon(images.sb_icon3_bmp.GetBitmap()))
-        self.SetIcon(wx.Icon(CreateBitmap("sb_icon3_grey_bmp", size = (20,20), mask = 'white')))
+        self.SetIcon(wx.Icon(CreateBitmap("sb_icon3_grey_bmp",
+                                          size = (20,20),
+                                          mask = 'white')))
 
         self.no_image_ass  = images.no_image_ass_png.GetBitmap()
         self.no_image_part = images.no_image_part_png.GetBitmap()
@@ -506,7 +528,7 @@ class MainWindow(wx.Frame):
         ID_DELETE = self.NewControlId()
         ID_FILE_OPEN = self.NewControlId()
         ID_FILE_SAVE = self.NewControlId()
-        ID_FILE_SAVE_AS = self.NewControlId()
+        ID_EXPORT_ASSEMBLY = self.NewControlId()
 
         ID_ASSEMBLE = self.NewControlId()
         ID_FLATTEN = self.NewControlId()
@@ -536,48 +558,84 @@ class MainWindow(wx.Frame):
         panel_top = wx.Panel(self)
 
         ''' Ribbon with tools '''
-        self._ribbon = RB.RibbonBar(panel_top, style=RB.RIBBON_BAR_DEFAULT_STYLE
-                                                |RB.RIBBON_BAR_SHOW_PANEL_EXT_BUTTONS)
+        self._ribbon = RB.RibbonBar(panel_top,
+                                    style = RB.RIBBON_BAR_DEFAULT_STYLE | RB.RIBBON_BAR_SHOW_PANEL_EXT_BUTTONS)
 
 
 
         home = RB.RibbonPage(self._ribbon, wx.ID_ANY, "Home")
 
         file_panel = RB.RibbonPanel(home, wx.ID_ANY, "File",
-                                       style=RB.RIBBON_PANEL_NO_AUTO_MINIMISE)
+                                    style=RB.RIBBON_PANEL_NO_AUTO_MINIMISE)
         toolbar = RB.RibbonToolBar(file_panel, wx.ID_ANY)
 
-        toolbar.AddTool(ID_FILE_OPEN, wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_OTHER, wx.Size(self._default_size)))
-        toolbar.AddTool(ID_FILE_SAVE, wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE, wx.ART_OTHER, wx.Size(self._default_size)))
-        toolbar.AddTool(ID_FILE_SAVE_AS, wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE_AS, wx.ART_OTHER, wx.Size(self._default_size)))
+        toolbar.AddTool(ID_FILE_OPEN,
+                        wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN,
+                                                 wx.ART_OTHER,
+                                                 wx.Size(self._default_size)),
+                        help_string = "File open")
+        toolbar.AddTool(ID_FILE_SAVE,
+                        wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE,
+                                                 wx.ART_OTHER,
+                                                 wx.Size(self._default_size)),
+                        help_string = "Save project to Excel")
+        toolbar.AddTool(ID_EXPORT_ASSEMBLY,
+                        wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE_AS,
+                                                 wx.ART_OTHER,
+                                                 wx.Size(self._default_size)),
+                        help_string = "Save active assembly")
         toolbar.AddSeparator()
-        toolbar.AddHybridTool(ID_NEW, wx.ArtProvider.GetBitmap(wx.ART_NEW, wx.ART_OTHER, wx.Size(self._default_size)))
-        toolbar.AddHybridTool(ID_DELETE, wx.ArtProvider.GetBitmap(wx.ART_DELETE, wx.ART_OTHER, wx.Size(self._default_size)))
+        toolbar.AddHybridTool(ID_NEW,
+                              wx.ArtProvider.GetBitmap(wx.ART_NEW,
+                                                       wx.ART_OTHER,
+                                                       wx.Size(self._default_size)),
+                              help_string = "Create new empty assembly")
+        toolbar.AddHybridTool(ID_DELETE,
+                              wx.ArtProvider.GetBitmap(wx.ART_DELETE,
+                                                       wx.ART_OTHER,
+                                                       wx.Size(self._default_size)),
+                              help_string = "Delete assembly")
         toolbar.SetRows(2, 3)
 
         ass_panel = RB.RibbonPanel(home, wx.ID_ANY, "Assembly")
 
         ass_ops = RB.RibbonButtonBar(ass_panel)
-        ass_ops.AddButton(ID_ADD_NODE, "Add node", CreateBitmap("add_node_png", size = self._button_size),
-                          help_string="Add node at selected position")
-        ass_ops.AddButton(ID_REMOVE_NODE, "Remove node", CreateBitmap("remove_node_png", size = self._button_size),
-                         help_string = "Remove selected node")
-        ass_ops.AddButton(ID_ASSEMBLE, "Assemble", CreateBitmap("assemble_png", size = self._button_size),
-                         help_string = "Assemble parts into sub-assembly")
-        ass_ops.AddButton(ID_FLATTEN, "Flatten", CreateBitmap("flatten_png", size = self._button_size),
-                         help_string = "Remove sub-assemblies")
-        ass_ops.AddButton(ID_DISAGGREGATE, "Disaggregate", CreateBitmap("disaggregate_png", size = self._button_size),
-                         help_string = "Create sub-assembly with two parts")
-        ass_ops.AddButton(ID_AGGREGATE, "Aggregate", CreateBitmap("aggregate_png", size = self._button_size),
-                         help_string = "Remove all contained parts and create single part")
+        ass_ops.AddButton(ID_ADD_NODE, "Add node",
+                          CreateBitmap("add_node_png",
+                                       size = self._button_size),
+                          help_string ="Add node at selected position")
+        ass_ops.AddButton(ID_REMOVE_NODE, "Remove node",
+                          CreateBitmap("remove_node_png",
+                                       size = self._button_size),
+                          help_string = "Remove selected node")
+        ass_ops.AddButton(ID_ASSEMBLE, "Assemble",
+                          CreateBitmap("assemble_png",
+                                       size = self._button_size),
+                          help_string = "Assemble parts into sub-assembly")
+        ass_ops.AddButton(ID_FLATTEN, "Flatten",
+                          CreateBitmap("flatten_png",
+                                       size = self._button_size),
+                          help_string = "Remove sub-assemblies")
+        ass_ops.AddButton(ID_DISAGGREGATE, "Disaggregate",
+                          CreateBitmap("disaggregate_png",
+                                       size = self._button_size),
+                          help_string = "Create sub-assembly with two parts")
+        ass_ops.AddButton(ID_AGGREGATE, "Aggregate",
+                          CreateBitmap("aggregate_png",
+                                       size = self._button_size),
+                          help_string = "Remove all contained parts and create single part")
 
         sort_panel = RB.RibbonPanel(home, wx.ID_ANY, "Sort")
 
         sort_ops = RB.RibbonButtonBar(sort_panel)
-        sort_ops.AddButton(ID_SORT_MODE, "Sort mode", CreateBitmap("sort_mode_png", size = self._button_size),
-                         help_string = "Toggle alphabetical/numerical sort in parts list")
-        sort_ops.AddButton(ID_SORT_REVERSE, "Sort reverse", CreateBitmap("sort_reverse_png", size = self._button_size),
-                         help_string = "Reverse sort order in parts list")
+        sort_ops.AddButton(ID_SORT_MODE, "Sort mode",
+                           CreateBitmap("sort_mode_png",
+                                        size = self._button_size),
+                           help_string = "Toggle alphabetical/numerical sort in parts list")
+        sort_ops.AddButton(ID_SORT_REVERSE, "Sort reverse",
+                           CreateBitmap("sort_reverse_png",
+                                        size = self._button_size),
+                           help_string = "Reverse sort order in parts list")
 
 
 
@@ -602,17 +660,25 @@ class MainWindow(wx.Frame):
         recon_panel = RB.RibbonPanel(assistant_tab, wx.ID_ANY, "Comparison tools")
 
         recon_ops = RB.RibbonButtonBar(recon_panel)
-        recon_ops.AddButton(ID_CALC_SIM, "Calculate similarity", CreateBitmap("compare_png", size = self._button_size),
-                         help_string = "Calculate and report similarity between two assemblies")
-        recon_ops.AddButton(ID_ASS_MAP, "Map assembly elements", CreateBitmap("injection_png", size = self._button_size),
-                         help_string = "Map elements in first assembly to those in second")
-        recon_ops.AddButton(ID_RECON, "Reconcile assemblies", CreateBitmap("tree_png", size = self._button_size),
-                         help_string = "Calculate and report edit path(S) to transform one assembly into another")
+        recon_ops.AddButton(ID_CALC_SIM, "Calculate similarity",
+                            CreateBitmap("compare_png",
+                                         size = self._button_size),
+                            help_string = "Calculate and report similarity between two assemblies")
+        recon_ops.AddButton(ID_ASS_MAP, "Map assembly elements",
+                            CreateBitmap("injection_png",
+                                         size = self._button_size),
+                            help_string = "Map elements in first assembly to those in second")
+        recon_ops.AddButton(ID_RECON, "Reconcile assemblies",
+                            CreateBitmap("tree_png",
+                                         size = self._button_size),
+                            help_string = "Calculate and report edit path(S) to transform one assembly into another")
 
         suggestions_panel = RB.RibbonPanel(assistant_tab, wx.ID_ANY, "Configuration suggestions")
 
         suggestions_ops = RB.RibbonButtonBar(suggestions_panel)
-        suggestions_ops.AddHybridButton(ID_SUGGEST, "Suggest new assembly", CreateBitmap("bulb_sharp_small_png", size = self._button_size))
+        suggestions_ops.AddHybridButton(ID_SUGGEST, "Suggest new assembly",
+                                        CreateBitmap("bulb_sharp_small_png",
+                                                     size = self._button_size))
 
 
 
@@ -696,6 +762,7 @@ class MainWindow(wx.Frame):
         self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnDeleteAssembly, id = ID_DELETE)
         self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnFileOpen, id = ID_FILE_OPEN)
         self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnFileSave, id = ID_FILE_SAVE)
+        self.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.OnExportAssembly, id = ID_EXPORT_ASSEMBLY)
 
         ass_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnAddNode, id = ID_ADD_NODE)
         ass_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnRemoveNode, id = ID_REMOVE_NODE)
@@ -910,23 +977,28 @@ class MainWindow(wx.Frame):
 
     def OnNotebookRightDown(self, event):
         menu = wx.Menu()
+        ID_NEW_ASSEMBLY = self.NewControlId()
         ID_DELETE_ASSEMBLY = self.NewControlId()
         ID_RENAME_ASSEMBLY = self.NewControlId()
         ID_ADD_TO_LATTICE = self.NewControlId()
         ID_REMOVE_FROM_LATTICE = self.NewControlId()
         ID_DUPLICATE_ASSEMBLY = self.NewControlId()
+        ID_IMPORT_ASSEMBLY = self.NewControlId()
 
         menu.Append(ID_DELETE_ASSEMBLY, 'Delete assembly')
         menu.Append(ID_RENAME_ASSEMBLY, 'Rename assembly')
         menu.Append(ID_ADD_TO_LATTICE, 'Add assembly to lattice')
         menu.Append(ID_REMOVE_FROM_LATTICE, 'Remove assembly from lattice')
         menu.Append(ID_DUPLICATE_ASSEMBLY, 'Duplicate active assembly')
+        menu.Append(ID_IMPORT_ASSEMBLY, 'Import StrEmbed assembly from file')
 
+        menu.Bind(wx.EVT_MENU, self.OnNewAssembly, id = ID_NEW_ASSEMBLY)
         menu.Bind(wx.EVT_MENU, self.OnRenameAssembly, id = ID_RENAME_ASSEMBLY)
         menu.Bind(wx.EVT_MENU, self.OnDeleteAssembly, id = ID_DELETE_ASSEMBLY)
         menu.Bind(wx.EVT_MENU, self.OnAddToLattice, id = ID_ADD_TO_LATTICE)
         menu.Bind(wx.EVT_MENU, self.OnRemoveFromLattice, id = ID_REMOVE_FROM_LATTICE)
         menu.Bind(wx.EVT_MENU, self.OnDuplicateAssembly, id = ID_DUPLICATE_ASSEMBLY)
+        menu.Bind(wx.EVT_MENU, self.OnImportAssembly, id = ID_IMPORT_ASSEMBLY)
 
         self.PopupMenu(menu)
 
@@ -992,7 +1064,8 @@ class MainWindow(wx.Frame):
         self._notebook.DeletePage(selection)
         _id = self._notebook_manager[page]
 
-        self._assembly_manager.RemoveFromLattice(_id)
+        # self._assembly_manager.RemoveFromLattice(_id)
+        self._assembly_manager.DeleteAssembly(_id)
         self._notebook_manager.pop(page)
         self.AddText('Assembly deleted')
 
@@ -1011,8 +1084,8 @@ class MainWindow(wx.Frame):
     def OnAddToLattice(self, event = None):
         print('Running "OnAddToLattice"')
         ''' Not tested '''
-        # _id = self.assembly.assembly_id
-        # self._assembly_manager.AddToLattice(_id)
+        _id = self.assembly.assembly_id
+        self._assembly_manager.AddToLattice(_id)
 
 
 
@@ -1020,63 +1093,8 @@ class MainWindow(wx.Frame):
     def OnRemoveFromLattice(self, event = None):
         print('Running "OnRemoveFromLattice"')
         ''' Not tested '''
-        # _id = self.assembly.assembly_id
-        # self._assembly_manager.RemoveFromLattice(_id)
-
-
-
-    ''' HR 17/03/22 To create duplicate assembly, page, etc., refresh all views
-                    and (optionally) add assmebly to lattice
-                    (can alternatively do later via right-click via reconciliation '''
-    def OnDuplicateAssembly(self, event = None, duplicate_in_lattice = True):
-        print('Running "OnDuplicateAssembly"')
-        ''' Get ID of old active assembly to be duplicated '''
-        old_id = self.assembly.assembly_id
-        ''' Use ID to create duplicate assembly '''
-        self.MakeNewAssemblyPage(id_to_duplicate = old_id)
-
-        ''' Get ID of new duplicate assembly '''
-        new_id = self.assembly.assembly_id
-
-        ''' --- '''
-        ''' All below from "OnFileOpen", to be adapted '''
-        ''' --- '''
-
-        ''' Add to lattice by duplication '''
-        if duplicate_in_lattice:
-            print('Old ID, new ID: ', old_id, new_id)
-            self._assembly_manager.DuplicateInLattice(old_id, new_id)
-            print('Head = ', self.assembly.head)
-
-        ''' Show parts list and lattice '''
-        self.DisplayPartsList()
-
-        ''' Do some tidying up '''
-
-        if self._page.file_open:
-            ''' Clear selector window if necessary '''
-            try:
-                self._page.slct_sizer.Clear(True)
-            except:
-                print("Couldn't clear selector sizer")
-
-            ''' Clear lattice plot if necessary '''
-            try:
-                self.latt_axes.clear()
-            except:
-                print("Couldn't clear lattice axes")
-
-        else:
-            ''' Set "file is open" tag '''
-            self._page.file_open = True
-            self._page.Enable()
-
-        ''' ------------------- '''
-
-        ''' Display lattice and update 3D viewer '''
-        self.DisplayLattice(set_pos = True, called_by = 'OnDuplicateAssembly')
-        # self.Update3DView(selected_items = self.selected_items)
-        self.Update3DView()
+        _id = self.assembly.assembly_id
+        self._assembly_manager.RemoveFromLattice(_id)
 
 
 
@@ -1140,7 +1158,7 @@ class MainWindow(wx.Frame):
             ''' Create new assembly + ID and replace link to page '''
             _id, _assembly = self._assembly_manager.new_assembly()
             self._notebook_manager[_page] = _id
-            
+
             ''' Set new assembly to be active one '''
             self.assembly = _assembly
 
@@ -1158,8 +1176,8 @@ class MainWindow(wx.Frame):
 
         ''' Show parts list and lattice '''
         self.DisplayPartsList()
-        ''' Do some tidying up '''
 
+        ''' Do some tidying up '''
         if self._page.file_open:
             ''' Clear selector window if necessary '''
             try:
@@ -1179,7 +1197,7 @@ class MainWindow(wx.Frame):
             self._page.Enable()
 
         ''' ------------------- '''
-        
+
         ''' Add to lattice '''
         if add_to_lattice:
             print('Adding assembly to lattice')
@@ -1217,7 +1235,6 @@ class MainWindow(wx.Frame):
         fileDialog.Destroy()
 
         ''' Construct full file path and save project to Excel '''
-        # file_fullpath = os.path.join(path, filename)
         print('Filename (full path): ', file_fullpath)
 
         ''' Dump project to Excel file and return full file path '''
@@ -1406,30 +1423,12 @@ class MainWindow(wx.Frame):
         ''' Clear 3D view completely '''
         self._page.occ_panel._display.EraseAll()
 
-        # for node in self.assembly.nodes:
-        #     ''' HR 29/10/21 Do not display if "hide" is true '''
-        #     if 'hide' in self.assembly.nodes[node]:
-        #         if self.assembly.nodes[node]['hide']:
-        #             print('Item ', node, 'hidden')
-        #             continue
-        #     try:
-        #         shape, c = self.assembly.nodes[node]['shape_loc']
-        #     except:
-        #         shape, c = None, None
-        #     ''' Don't display assemblies, i.e. nodes without shapes '''
-        #     if not shape:
-        #         continue
-        #     if node in selected_items:
-        #         self.display_shape(node, shape, c)
-        #     else:
-        #         self.display_shape(node, shape, c, transparency = 1)
-        #     # print('Displaying node ', item)
-
+        ''' Tidy up ASS and AUP '''
         for node in ASS:
-            shape, c = shape, c = self.assembly.nodes[node]['shape_loc']
+            shape, c = self.assembly.nodes[node]['shape_loc']
             self.display_shape(node, shape, c)
         for node in AUS:
-            shape, c = shape, c = self.assembly.nodes[node]['shape_loc']
+            shape, c = self.assembly.nodes[node]['shape_loc']
             self.display_shape(node, shape, c, transparency = 1)
 
         self._page.occ_panel._display.View.FitAll()
@@ -1609,12 +1608,18 @@ class MainWindow(wx.Frame):
                     https://github.com/tpaviot/pythonocc-demos/blob/master/examples/core_display_erase_shape.py '''
     def display_shape(self, ID, shape, c, transparency = None):
 
+        # print('   Node ID: ', ID)
+        # print('   Shape colours (RGB):', c.Red(), c.Green(), c.Blue())
+        # shape_obj = self._page.occ_panel._display.DisplayShape(shape,
+        #                                                        color = Quantity_Color(c.Red(),
+        #                                                                               c.Green(),
+        #                                                                               c.Blue(),
+        #                                                                               Quantity_TOC_RGB),
+        #                                                        transparency = transparency)[0]
         shape_obj = self._page.occ_panel._display.DisplayShape(shape,
-                                                   color = Quantity_Color(c.Red(),
-                                                                          c.Green(),
-                                                                          c.Blue(),
-                                                                          Quantity_TOC_RGB),
-                                                   transparency = transparency)[0]
+                                                               color = c,
+                                                               transparency = transparency)[0]
+
         if hasattr(self._page, 'shape_dict'):
             self._page.shape_dict[ID] = shape_obj
         else:
@@ -1632,8 +1637,7 @@ class MainWindow(wx.Frame):
             self._page.occ_panel._display.Context.Erase(shape_obj, True)
             # print('Erased shape from 3D view')
         except:
-            # print("Couldn't erase shape from 3D view: shape not present")
-            pass
+            print("Couldn't erase shape from 3D view: shape not present")
 
 
 
@@ -1875,49 +1879,78 @@ class MainWindow(wx.Frame):
             node = selected_items[-1]
             if node in self.assembly.leaves:
                 ''' Part options '''
-                menu_item = menu.Append(wx.ID_ANY, 'Disaggregate', 'Disaggregate part into parts')
-                self.Bind(wx.EVT_MENU, self.OnDisaggregate, menu_item)
-                menu_item = menu.Append(wx.ID_ANY, 'Remove part', 'Remove part')
+                menu_item = menu.Append(wx.ID_ANY,
+                                        'Disaggregate',
+                                        'Disaggregate part into parts')
+                self.Bind(wx.EVT_MENU,self.OnDisaggregate, menu_item)
+                menu_item = menu.Append(wx.ID_ANY,
+                                        'Remove part',
+                                        'Remove part')
                 self.Bind(wx.EVT_MENU, self.OnRemoveNode, menu_item)
                 ''' HR 29/10/21 To allow parts to be hidden in 3D viewer '''
-                menu_item = menu.Append(wx.ID_ANY, 'Hide/show', 'Hide/show part in 3D view')
+                menu_item = menu.Append(wx.ID_ANY,
+                                        'Hide/show',
+                                        'Hide/show part in 3D view')
                 self.Bind(wx.EVT_MENU, self.OnHideMode, menu_item)
             else:
                 ''' Assembly options '''
-                menu_item = menu.Append(wx.ID_ANY, 'Flatten', 'Flatten assembly')
+                menu_item = menu.Append(wx.ID_ANY,
+                                        'Flatten',
+                                        'Flatten assembly')
                 self.Bind(wx.EVT_MENU, self.OnFlatten, menu_item)
-                menu_item = menu.Append(wx.ID_ANY, 'Aggregate', 'Aggregate assembly')
+                menu_item = menu.Append(wx.ID_ANY,
+                                        'Aggregate',
+                                        'Aggregate assembly')
                 self.Bind(wx.EVT_MENU, self.OnAggregate, menu_item)
-                menu_item = menu.Append(wx.ID_ANY, 'Add node', 'Add node to assembly')
+                menu_item = menu.Append(wx.ID_ANY,
+                                        'Add node',
+                                        'Add node to assembly')
                 self.Bind(wx.EVT_MENU, self.OnAddNode, menu_item)
-                menu_item = menu.Append(wx.ID_ANY, 'Remove sub-assembly', 'Remove sub-assembly')
+                menu_item = menu.Append(wx.ID_ANY,
+                                        'Remove sub-assembly',
+                                        'Remove sub-assembly')
                 self.Bind(wx.EVT_MENU, self.OnRemoveNode, menu_item)
                 ''' Sorting options '''
                 menu_text = 'Sort children alphabetically'
-                menu_item = menu.Append(wx.ID_ANY, menu_text, menu_text)
+                menu_item = menu.Append(wx.ID_ANY,
+                                        menu_text,
+                                        menu_text)
                 self.Bind(wx.EVT_MENU, self.OnSortAlpha, menu_item)
                 menu_text = 'Sort children by unique ID'
-                menu_item = menu.Append(wx.ID_ANY, menu_text, menu_text)
+                menu_item = menu.Append(wx.ID_ANY,
+                                        menu_text,
+                                        menu_text)
                 self.Bind(wx.EVT_MENU, self.OnSortByID, menu_item)
+
 
             ''' HR 12/10/21 To add/view node data '''
             menu_text = 'Add node data'
-            menu_item = menu.Append(wx.ID_ANY, menu_text, menu_text)
+            menu_item = menu.Append(wx.ID_ANY,
+                                    menu_text,
+                                    menu_text)
             self.Bind(wx.EVT_MENU, self.OnAddNodeData, menu_item)
-            menu_text = 'View node data'
-            # menu_item = menu.Append(wx.ID_ANY, menu_text, menu_text)
+            # menu_text = 'View node data'
+            # menu_item = menu.Append(wx.ID_ANY,
+            #                         menu_text,
+            #                         menu_text)
             # self.Bind(wx.EVT_MENU, self.OnViewNodeData, menu_item)
 
         elif len(selected_items) > 1:
             ''' Multiple-item options '''
-            menu_item = menu.Append(wx.ID_ANY, 'Assemble', 'Form assembly from selected items')
+            menu_item = menu.Append(wx.ID_ANY,
+                                    'Assemble',
+                                    'Form assembly from selected items')
             self.Bind(wx.EVT_MENU, self.OnAssemble, menu_item)
-            menu_item = menu.Append(wx.ID_ANY, 'Remove parts', 'Remove parts')
+            menu_item = menu.Append(wx.ID_ANY,
+                                    'Remove parts',
+                                    'Remove parts')
             self.Bind(wx.EVT_MENU, self.OnRemoveNode, menu_item)
 
             ''' HR 10/12/21 To add on-the-spot similarity score '''
             if len(selected_items) == 2:
-                menu_item = menu.Append(wx.ID_ANY, 'Get similarity scores', 'Get similarity scores between two items')
+                menu_item = menu.Append(wx.ID_ANY,
+                                        'Get similarity scores',
+                                        'Get similarity scores between two items')
                 self.Bind(wx.EVT_MENU, self.OnGetSims, menu_item)
 
         ''' Create popup menu at current mouse position (default if no positional argument passed) '''
@@ -2089,39 +2122,7 @@ class MainWindow(wx.Frame):
 
 
 
-    # def TreeItemSelectionChanged(self, OS, event):
     def TreeItemSelectionChanged(self, event):
-
-        # NS = self.selected_items
-
-        # ''' HR 05/11/21 Switch to allow all children to be selected '''
-        # print('Selected items:', NS)
-        # if self.SELECT_ALL_CHILDREN:
-        #     tree = self._page.partTree_ctc
-        #     tree_item = event.GetItem()
-
-        #     self.part_list_done = True
-        #     tree.SelectAllChildren(tree_item)
-        #     self.part_list_done = False
-
-        #     NS_copy = [el for el in NS]
-        #     for node in NS_copy:
-        #         NS.extend(nx.descendants(self.assembly, node))
-        #     NS = list(set(NS))
-
-        #     print('Selected items and all children: ', NS)
-
-        # '''
-        # Don't execute if raised by 3D view selection...
-        # as would redo for every selected item...
-        # or if new selections are same as previous
-        # '''
-
-        # print('Tree item selected, updating selector, lattice and 3D views...')
-        # ''' Update images and lattice view '''
-        # self.UpdateToggledImages()
-        # self.UpdateSelectedNodes(called_by = 'TreeItemSelected')
-        # self.Update3DView(NS)
 
         ''' HR 30/11/21 To integrate global GUI update method '''
         ''' Abort if vetoed '''
@@ -2312,7 +2313,7 @@ class MainWindow(wx.Frame):
             if dist > picker_tol:
                 print('Outside tolerance, getting position on nearest line')
 
-                list_ = [el for el in range(len(plot_obj.leaves)+1)]
+                # list_ = [el for el in range(len(plot_obj.leaves)+1)]
                 # y__ = get_nearest(event.ydata, list_)
                 return
 
@@ -2321,35 +2322,6 @@ class MainWindow(wx.Frame):
             ''' ---------------------------------------------------------- '''
 
 
-
-            # ''' Get already-selected items in active assembly '''
-            # active = self.assembly.assembly_id
-            # selected_items = self.selected_items
-            # latt = self._assembly_manager._lattice
-            # if active in latt.nodes[node]:
-            #     print('Node in active assembly: de/selecting...')
-            #     node = latt.nodes[node][active]
-            # else:
-            #     print('Node not in active assembly; returning')
-            #     return
-
-            # ''' Update node colourings in lattice view '''
-            # if node in selected_items:
-            #     print('Unselecting...')
-            #     to_select = []
-            #     to_unselect = [node]
-            # else:
-            #     print('Selecting...')
-            #     to_select = []
-            #     to_unselect = [node]
-
-            # self._assembly_manager.update_colours_selected(active, selected = selected_items, to_select = to_select, to_unselect = to_unselect, called_by = "OnLatticeMouseRelease")
-            # # self._assembly_manager.update_colours_selected(active, selected = selected_items, to_select = to_select)
-
-            # self.DoDraw('OnLatticeMouseRelease')
-
-            # ''' Update items in parts list using assembly node ID '''
-            # self.UpdateListSelections(node)
 
             ''' ------------------------------------
             HR 25/11/21 New GUI update functionality
@@ -2994,33 +2966,22 @@ class MainWindow(wx.Frame):
 
 
 
-    def NodeDataDialog(self, event = None, text = 'Node data dialog', message = 'Enter node data field name and value'):
-        # data_entry = wx.Dialog
-        pass
-
-
-
-    def OnNewAssembly(self, event):
+    def OnNewAssembly(self, event = None):
         self.AddText("New assembly button pressed")
         self.MakeNewAssemblyPage()
 
 
 
-    def MakeNewAssemblyPage(self, name = None, id_to_duplicate = None):
+    def MakeNewAssemblyPage(self, event = None):
 
         self.Freeze()
-        print('Trying to make new assembly')
+        print('Trying to make new assembly with new page...')
 
-
-        ''' Create assembly object and add to assembly manager '''
-        new_id, new_assembly = self._assembly_manager.new_assembly(id_to_duplicate = id_to_duplicate)
-
-        # name = self.assembly_manager.get_new_assembly_name(new_id)
+        ''' Create assembly object and add to NB manager '''
+        new_id, new_assembly = self._assembly_manager.new_assembly()
         name = new_assembly.assembly_name
         page = NotebookPanel(self._notebook, new_id, border = self._border)
         self._notebook_manager[page] = new_id
-
-
 
         ''' Add tab with select = True, so EVT_NOTEBOOK_PAGE_CHANGED fires
             and relevant assembly is activated via OnNotebookPageChanged;
@@ -3029,13 +2990,154 @@ class MainWindow(wx.Frame):
         self._notebook.AddPage(page, text = name, select = True)
         self._page = page
 
-        ''' No need to do this, as caught by "OnNotebookPaegChanged" '''
+        self.setup_new_page(disable = True)
+        self.Thaw()
+
+
+
+    def OnDuplicateAssembly(self, event = None):
+        self.AddText("Duplicate assembly button pressed")
+        self.MakeDuplicateAssemblyPage()
+
+
+
+    ''' HR 08/04/22 To account for successful deepcopy functionality;
+                    see notes above "PickleSWIG" mixin at top '''
+    def MakeDuplicateAssemblyPage(self, event = None, add_to_lattice = True):
+
+        self.Freeze()
+        print('Trying to duplicate assembly with new page...')
+
+        ''' Duplicate assembly object and add to NB manager '''
+        old_id = self.assembly.assembly_id
+        new_id, new_assembly = self._assembly_manager.duplicate_assembly(old_id)
+        name = new_assembly.assembly_name
+        page = NotebookPanel(self._notebook, new_id, border = self._border)
+        self._notebook_manager[page] = new_id
+
+        ''' Add tab with select = True, so EVT_NOTEBOOK_PAGE_CHANGED fires
+            and relevant assembly is activated via OnNotebookPageChanged;
+            "text = name" equivalent to SetPageText if done later
+            e.g. in RenameAssembly '''
+        self._notebook.AddPage(page, text = name, select = True)
+        self._page = page
+        self.assembly = new_assembly
+
+        self.setup_new_page(disable = False)
+        self.Thaw()
+
+        ''' Show parts list and lattice '''
+        self.DisplayPartsList()
+
+        ''' Do some tidying up '''
+
+        ''' Clear selector window if necessary '''
+        try:
+            self._page.slct_sizer.Clear(True)
+        except:
+            print("Couldn't clear selector sizer")
+
+        ''' Clear lattice plot if necessary '''
+        try:
+            self.latt_axes.clear()
+        except:
+            print("Couldn't clear lattice axes")
+
+        # ''' Add to lattice '''
+        # self._assembly_manager.AddToLattice(new_id)
+        ''' Duplicate to lattice '''
+        if add_to_lattice:
+            self._assembly_manager.DuplicateInLattice(old_id, new_id)
+
+        ''' Display lattice and update 3D viewer '''
+        self.DisplayLattice(set_pos = True, called_by = 'MakeDuplicateAssemblyPage')
+        # self.Update3DView(selected_items = self.selected_items)
+        self.Update3DView()
+
+
+
+    ''' HR 11/04/22 To import pickled StepParse assembly '''
+    def OnImportAssembly(self, event = None):
+        self.AddText("Import assembly button pressed")
+        self.MakeImportedAssemblyPage()
+
+
+
+    def MakeImportedAssemblyPage(self, add_to_lattice = True):
+        print('Running "OnImportAssembly')
+
+        ''' Get file to import '''
+        ext = self._assembly_manager.ASSEMBLY_EXTENSION_DEFAULT
+        filename = self.GetFilename(dialog_text = "Import assembly", ender = [ext])
+        if not filename:
+            print('No filename given; returning')
+            return
+
+        ''' Load assembly '''
+        try:
+            id_imported, ass_imported = self._assembly_manager.import_assembly(filename)
+            print('Done')
+        except Exception as e:
+            print('Could not import assembly, exception follows')
+            print(e)
+            return
+
+        ''' Create new notebook tab, etc. '''
+        self.Freeze()
+        print('Trying to create new page for imported assembly...')
+
+        name = ass_imported.assembly_name
+        page = NotebookPanel(self._notebook, id_imported, border = self._border)
+        self._notebook_manager[page] = id_imported
+
+        ''' Add tab with select = True, so EVT_NOTEBOOK_PAGE_CHANGED fires
+            and relevant assembly is activated via OnNotebookPageChanged;
+            "text = name" equivalent to SetPageText if done later
+            e.g. in RenameAssembly '''
+        self._notebook.AddPage(page, text = name, select = True)
+        self._page = page
+        self.assembly = ass_imported
+
+        self.setup_new_page(disable = False)
+        self.Thaw()
+
+        ''' Show parts list and lattice '''
+        self.DisplayPartsList()
+
+        ''' Do some tidying up '''
+
+        ''' Clear selector window if necessary '''
+        try:
+            self._page.slct_sizer.Clear(True)
+        except:
+            print("Couldn't clear selector sizer")
+
+        ''' Clear lattice plot if necessary '''
+        try:
+            self.latt_axes.clear()
+        except:
+            print("Couldn't clear lattice axes")
+
+        ''' Add to lattice '''
+        if add_to_lattice:
+            self._assembly_manager.AddToLattice(id_imported)
+
+        ''' Display lattice and update 3D viewer '''
+        self.DisplayLattice(set_pos = True, called_by = 'MakeImportedAssemblyPage')
+        # self.Update3DView(selected_items = self.selected_items)
+        self.Update3DView()
+
+
+
+    ''' HR 08/04/22 Separated from MakeNewAssemblyPage as now common with DuplicateAssemblyPage '''
+    def setup_new_page(self, disable = True):
+        ''' No need to do this, as caught by "OnNotebookPageChanged" '''
         # self.assembly = self._assembly_manager._mgr[new_id]
 
         ''' All tab-specific bindings '''
-        self._page.partTree_ctc.Bind(wx.EVT_RIGHT_DOWN,          self.OnRightClick)
-        self._page.partTree_ctc.Bind(wx.EVT_TREE_BEGIN_DRAG,     self.OnTreeDrag)
-        self._page.partTree_ctc.Bind(wx.EVT_TREE_END_DRAG,       self.OnTreeDrop)
+        self._page.partTree_ctc.Bind(wx.EVT_RIGHT_DOWN, self.OnRightClick)
+        self._page.partTree_ctc.Bind(wx.EVT_TREE_BEGIN_DRAG, self.OnTreeDrag)
+        self._page.partTree_ctc.Bind(wx.EVT_TREE_END_DRAG, self.OnTreeDrop)
         self._page.partTree_ctc.Bind(wx.EVT_TREE_END_LABEL_EDIT, self.OnTreeLabelEditEnd)
 
         self._page.Bind(ctc.EVT_TREE_ITEM_CHECKED, self.TreeItemChecked)
@@ -3046,10 +3148,46 @@ class MainWindow(wx.Frame):
 
         self._page.occ_panel.Bind(wx.EVT_LEFT_UP, self.OnLeftUp_3D)
 
-        ''' Disable until file loaded '''
-        self._page.Disable()
+        if disable:
+            ''' Disable until file loaded '''
+            self._page.Disable()
 
-        self.Thaw()
+
+
+    ''' HR 12/04/22 Pass to "save_assembly" method '''
+    def OnExportAssembly(self, event = None):
+        print('Running "OnSaveAssembly"')
+        self.export_assembly()
+
+
+
+    ''' HR To save active assembly via pickle '''
+    def export_assembly(self):
+        assembly_id = self.assembly.assembly_id
+        if not self.assembly.file_loaded:
+            print('No file loaded into active assembly; not exporting')
+            return None
+
+        ''' Construct default path and filename for file dialog;
+            filename is a timestamp '''
+        defaultDir = os.getcwd()
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        defaultFile = "assembly_" + timestamp + self._assembly_manager.ASSEMBLY_EXTENSION_DEFAULT
+
+        ''' Open file dialog and populate with default path and filename '''
+        dialog_text = 'Export assembly to file'
+        fileDialog = wx.FileDialog(parent = self,
+                                   message = dialog_text,
+                                   defaultDir = defaultDir,
+                                   defaultFile = defaultFile,
+                                   style = wx.FD_SAVE)
+        fileDialog.ShowModal()
+        filename = fileDialog.GetPath()
+        fileDialog.Destroy()
+
+        ''' Pass to manager to actually save '''
+        self._assembly_manager.save_assembly(filename, assembly_id)
+        return filename
 
 
 
@@ -3071,7 +3209,6 @@ class MainWindow(wx.Frame):
 
 
     def OnNotebookPageChanging(self, event = None):
-
         print('Notebook page changing')
 
         ''' Get active assembly before notebook page is changed
@@ -3098,7 +3235,6 @@ class MainWindow(wx.Frame):
 
 
     def OnNotebookPageChanged(self, id_old, event, checked_old = []):
-
         print('Notebook page changed')
 
         selection = self._notebook.GetSelection()
