@@ -113,8 +113,6 @@ from OCC.Core.Quantity import (Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_
 
 
 
-
-
 ''' Get bitmap from "images" script, which must itself be created
     via "embed_images" '''
 def CreateBitmap(imgName, mask = wx.WHITE, size = None):
@@ -136,8 +134,6 @@ def CreateBitmap(imgName, mask = wx.WHITE, size = None):
 
 
 
-
-
 class MyTree(ctc.CustomTreeCtrl):
 
     def __init__(self, parent, style):
@@ -145,8 +141,6 @@ class MyTree(ctc.CustomTreeCtrl):
         self.parent = parent
         self.reverse_sort = False
         self.alphabetical = True
-
-
 
     ''' Overridden method to allow sorting based on data other than text
         Can be sorted alphabetically or numerically, and in reverse
@@ -1134,8 +1128,8 @@ class MainWindow(wx.Frame):
     def OnFileOpen(self, event = None, add_to_lattice = True):
 
         ''' Get STEP filename '''
-        # open_filename = self.GetFilename(ender = ["stp", "step"]).split("\\")[-1]
-        open_filename = self.GetFilename(ender = ["stp", "step"])
+        # open_filename = self.GetFilename(ender = ["step", "stp"]).split("\\")[-1]
+        open_filename = self.GetFilename(ender = ["step", "stp"])
 
         ''' Return if filename is empty, i.e. if user selects "cancel" in file-open dialog '''
         if not open_filename:
@@ -1238,7 +1232,7 @@ class MainWindow(wx.Frame):
         print('Filename (full path): ', file_fullpath)
 
         ''' Dump project to Excel file and return full file path '''
-        self._assembly_manager.xlsx_write(save_file = file_fullpath)
+        self._assembly_manager.xlsx_write(save_file = file_fullpath, name_field = 'screen_name')
         return file_fullpath
 
 
@@ -1283,10 +1277,15 @@ class MainWindow(wx.Frame):
                         label = self.assembly.nodes[node][display_field]
                     except:
                         label = self.assembly.default_label_part
-                    try:
-                        text = self.assembly.nodes[node][display_field]
-                    except:
-                        text = self.assembly.default_label_part
+
+                    '''HR 10/06/22 To allow user-renamed items to retain names after assembly operations '''
+                    if 'text' in self.assembly.nodes[node]:
+                        text = self.assembly.nodes[node]['text']
+                    else:
+                        try:
+                            text = self.assembly.nodes[node][display_field]
+                        except:
+                            text = self.assembly.default_label_part
 
                     ctc_item = self._page.partTree_ctc.AppendItem(ctc_parent, text = text, ct_type = 1, data = {'id_': node, 'sort_id': node, 'label': label})
 
@@ -1356,10 +1355,10 @@ class MainWindow(wx.Frame):
 
 
 
-    @property
-    def hidden_nodes(self):
-        _hidden_nodes = [node for node in self.nodes if self.nodes[node]['hide']]
-        return _hidden_nodes
+    # @property
+    # def hidden_nodes(self):
+    #     _hidden_nodes = [node for node in self.nodes if self.nodes[node]['hide']]
+    #     return _hidden_nodes
 
 
 
@@ -2858,8 +2857,8 @@ class MainWindow(wx.Frame):
         text = item.GetText()
         if text_before != text:
             id_ = self._page.ctc_dict_inv[item]
-            self.assembly.nodes[id_]['text'] = text
-            print('Text changed to:', item.GetText())
+            self.assembly.nodes[id_]['screen_name'] = text
+            print('Text changed to:',text)
 
 
 

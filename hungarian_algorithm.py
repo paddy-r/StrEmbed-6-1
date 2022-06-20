@@ -8,14 +8,6 @@ from scipy.optimize import linear_sum_assignment as lsa
 import numpy as np
 import random
 
-''' HR 27/10/21
-    To do for full implementation:
-        1. Create full (not triangular) square/rectangular matrix from similarity scores dictionary - DONE
-        2. Allow user to specify tolerance that can be applied to scores either:
-            a. Before LSA calculation, if below tolerance -> set to default (i.e. negative) value then do LSA and accept all matches, or
-            b. After LSA calculations, if below tolerance -> nullify match, if present
-        3. Needs work overall (see example 4) to ensure array columns/rows are right way round - DONE '''
-
 ''' HR 13/10/21
     Linear sum assignment problem
     solved using "modified Jonker-Volgenant algorithm with no initialization"
