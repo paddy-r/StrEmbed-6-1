@@ -2,7 +2,7 @@
 
 Go to the latest release *via* the "Releases" tab, then either:
 
-1. Download the zip file at the "Releases" tab. There is when unpacked, the folder contains the required Python modules and an executable. Run it by double-clicking; the ```StrEmbed-6-1``` app will run and does not require any other files - or Python - to be installed on your machine.
+1. Download the ```StrEmbed_6_1``` zip file at the "Releases" tab. There is when unpacked, the folder contains the required Python modules and an executable. Run it by double-clicking; the ```StrEmbed-6-1``` app will run and does not require any other files - or Python - to be installed on your machine.
 2. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) and import into your Python environment. Instructions for setting up your environment and creating your own executable (not recommended) are given in the user manual.
 
 ___
