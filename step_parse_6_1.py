@@ -99,6 +99,7 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
 from OCC.Display import OCCViewer
 
+''' HR 28/06/22 These are the three files that must be modified to allow deep-copying '''
 from OCC.Core.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB
 from OCC.Core.TopLoc import TopLoc_Location
 from OCC.Core.TDF import TDF_LabelSequence, TDF_Label
@@ -1125,105 +1126,221 @@ class AssemblyManager():
 
 
 
+    # ''' HR 14/03/22 New version to use new reconciliation code,
+    #                 including PartFind shape comparison (optionally) '''
+    # def AddToLattice(self, _id, dominant = None, *args, **kwargs):
+
+    #     '''
+    #     HR 13/04/22 Refactored validation/typing section here
+    #                 to account for "_assemblies_in_lattice" list;
+    #                 decision required if either:
+    #                     (1) Only ID in _mgr is "_id", or
+    #                     (2) "dominant" not in lattice
+    #     '''
+
+
+
+    #     ''' If first assembly being added, just map nodes and edges directly
+    #         No need to do any similarity calculations '''
+    #     def simple_add(_id):
+
+    #         print('"Simple add": Adding first assembly to lattice')
+    #         a1 = self._mgr[_id]
+
+    #         for node in a1.nodes:
+    #             new_node = self._lattice.new_node_id
+    #             self._lattice.add_node(new_node, populate = False)
+    #             self._lattice.nodes[new_node].update({_id:node})
+
+    #         ''' Nodes must exist as edges require "get_master_node" '''
+    #         for n1,n2 in a1.edges:
+    #             u = self.get_master_node(_id, n1)
+    #             v = self.get_master_node(_id, n2)
+    #             self._lattice.add_edge(u,v)
+    #             self._lattice.edges[(u,v)].update({_id:(n1,n2)})
+
+    #         ''' HR 13/04/22 Added this list everywhere to track IDs present in lattice '''
+    #         self._assemblies_in_lattice.append(_id)
+
+
+
+    #     if _id not in self._mgr:
+    #         print('ID: ', _id)
+    #         print('Assembly not in manager; returning False')
+    #         return
+
+    #     if _id in self._assemblies_in_lattice:
+    #         print('Assembly', _id, 'already in lattice; returning False')
+    #         return
+
+    #     if not dominant:
+    #         try:
+    #             ''' Get first ID (numerically) from lattice list '''
+    #             dominant = sorted([el for el in self._assemblies_in_lattice])[0]
+    #             print('No ID specified for comparison; defaulting to first in lattice list')
+    #         except:
+    #             print('No IDs in lattice list; adding assembly')
+    #             simple_add(_id)
+    #             # self._assemblies_in_lattice.append(_id)
+    #             return
+
+    #     # if (not dominant) or (dominant not in self._assemblies_in_lattice):
+    #     #     print('Dominant assembly not specified or not found in manager; defaulting to assembly with lowest ID')
+    #     #     idlist = sorted([el for el in self._mgr])
+    #     #     # idlist.remove(_id)
+    #     #     dominant = idlist[0]
+
+
+
+    #     ''' Assemblies to be compared established by this point '''
+    #     print('ID of dominant assembly in manager: ', dominant)
+    #     print('ID of assembly to be added:         ', _id)
+
+    #     id1 = dominant
+    #     id2 = _id
+
+    #     a1 = self._mgr[id1]
+    #     a2 = self._mgr[id2]
+    #     # print('a1 nodes: ', a1.nodes)
+    #     # print('a2 nodes: ', a2.nodes)
+
+
+
+    #     '''
+    #     MAIN SECTION:
+    #         1. DO NODE COMPARISON AND COMPUTE PAIR-WISE SIMILARITIES
+    #         2. GET NODE MAP BETWEEN DOMINANT AND NEW ASSEMBLIES
+    #         3. ADD NEW ASSEMBLY TO LATTICE GRAPH
+    #     '''
+    #     results = self.matching_strategy(id1, id2, *args, **kwargs)[1]
+    #     matches = dict(results[0])
+    #     tau1, tau2 = results[3], results[4]
+
+    #     # print('results[1]: ', results)
+    #     # print('matches: ', matches)
+    #     # print('tau1: ', tau1)
+    #     # print('tau2: ', tau2)
+
+    #     ''' Show results '''
+    #     print('Mapping results: ')
+    #     f = 'screen_name'
+    #     for k,v in matches.items():
+    #         print('a1 node: ', k, a1.nodes[k][f], 'a2 node: ', v, a2.nodes[v][f])
+
+    #     '''
+    #         NODES
+    #     '''
+
+    #     ''' Append to existing master node dict if already present... '''
+    #     for n1,n2 in matches.items():
+    #         ''' Returns None if not present... '''
+    #         master_node = self.get_master_node(id1, n1)
+    #         ''' ...but if already present, add... '''
+    #         if master_node:
+    #             self._lattice.nodes[master_node].update({id2:n2})
+
+    #     ''' ...else create new master node entry '''
+    #     for n2 in tau2:
+    #         node = self._lattice.new_node_id
+    #         self._lattice.add_node(node, populate = False)
+    #         self._lattice.nodes[node].update({id2:n2})
+
+
+    #     '''
+    #         EDGES
+    #     '''
+
+    #     for n1,n2 in a2.edges:
+    #         m1 = self.get_master_node(id2, n1)
+    #         m2 = self.get_master_node(id2, n2)
+    #         if m1 and m2:
+    #             ''' Create master edge if not present '''
+    #             if (m1,m2) not in self._lattice.edges:
+    #                 self._lattice.add_edge(m1,m2)
+    #             ''' Lastly, create new entry '''
+    #             self._lattice.edges[(m1,m2)].update({id2:(n1,n2)})
+
+    #     ''' Add to lattice list '''
+    #     self._assemblies_in_lattice.append(id2)
+
+    #     return matches, id1, id2
+
+
+
+    ''' HR 05/07/22 To split into separate method from AddToLattice for ease;
+                    to be used for (e.g.) first assembly to be added to lattice '''
+    def AddToLatticeSimple(self, id1, *args, **kwargs):
+
+        ''' Some basic checks '''
+        if id1 not in self._mgr:
+            print('ID: ', id1)
+            print('Assembly not in manager; returning False')
+            return
+
+        if id1 in self._assemblies_in_lattice:
+            print('Assembly', id1, 'already in lattice; returning False')
+            return
+
+        print('"Simple add": Adding first assembly to lattice')
+        a1 = self._mgr[id1]
+
+        for node in a1.nodes:
+            new_node = self._lattice.new_node_id
+            self._lattice.add_node(new_node, populate = False)
+            self._lattice.nodes[new_node].update({id1:node})
+
+        ''' Nodes must exist as edges require "get_master_node" '''
+        for n1,n2 in a1.edges:
+            u = self.get_master_node(id1, n1)
+            v = self.get_master_node(id1, n2)
+            self._lattice.add_edge(u,v)
+            self._lattice.edges[(u,v)].update({id1:(n1,n2)})
+
+        ''' HR 13/04/22 Added this list everywhere to track IDs present in lattice '''
+        self._assemblies_in_lattice.append(id1)
+        print('Done AddToLatticeSimple for assembly ID', id1)
+
+
+
+    ''' HR 05/07/22 Refactored to pass matches to method
+                    ultimately this is to allow user choice before adding to lattice
+                    - id1: assembly to compare to
+                    - id2: assembly to be added to lattice '''
     ''' HR 14/03/22 New version to use new reconciliation code,
                     including PartFind shape comparison (optionally) '''
-    def AddToLattice(self, _id, dominant = None, *args, **kwargs):
+    def AddToLattice(self, id1, id2, matches, *args, **kwargs):
 
-        '''
-        HR 13/04/22 Refactored validation/typing section here
-                    to account for "_assemblies_in_lattice" list;
-                    decision required if either:
-                        (1) Only ID in _mgr is "_id", or
-                        (2) "dominant" not in lattice
-        '''
+        ''' Some basic checks '''
+        if id2 not in self._mgr:
+            print('ID: ', id2)
+            print('Assembly not in manager; returning')
+            return
 
-
-
-        ''' If first assembly being added, just map nodes and edges directly
-            No need to do any similarity calculations '''
-        def simple_add(_id):
-
-            print('"Simple add": Adding first assembly to lattice')
-            a1 = self._mgr[_id]
-
-            for node in a1.nodes:
-                new_node = self._lattice.new_node_id
-                self._lattice.add_node(new_node, populate = False)
-                self._lattice.nodes[new_node].update({_id:node})
-
-            ''' Nodes must exist as edges require "get_master_node" '''
-            for n1,n2 in a1.edges:
-                u = self.get_master_node(_id, n1)
-                v = self.get_master_node(_id, n2)
-                self._lattice.add_edge(u,v)
-                self._lattice.edges[(u,v)].update({_id:(n1,n2)})
-
-            ''' HR 13/04/22 Added this list everywhere to track IDs present in lattice '''
-            self._assemblies_in_lattice.append(_id)
-
-
-
-        if _id not in self._mgr:
-            print('ID: ', _id)
-            print('Assembly not in manager; returning False')
-            return False
-
-        if _id in self._assemblies_in_lattice:
-            print('Assembly', _id, 'already in lattice; returning False')
-            return False
-
-        if not dominant:
-            try:
-                ''' Get first ID (numerically) from lattice list '''
-                dominant = sorted([el for el in self._assemblies_in_lattice])[0]
-                print('No ID specified for comparison; defaulting to first in lattice list')
-            except:
-                print('No IDs in lattice list; adding assembly')
-                simple_add(_id)
-                self._assemblies_in_lattice.append(_id)
-                return True
-
-        # if (not dominant) or (dominant not in self._assemblies_in_lattice):
-        #     print('Dominant assembly not specified or not found in manager; defaulting to assembly with lowest ID')
-        #     idlist = sorted([el for el in self._mgr])
-        #     # idlist.remove(_id)
-        #     dominant = idlist[0]
+        if id2 in self._assemblies_in_lattice:
+            print('Assembly', id2, 'already in lattice; returning')
+            return
 
 
 
         ''' Assemblies to be compared established by this point '''
-        print('ID of dominant assembly in manager: ', dominant)
-        print('ID of assembly to be added:         ', _id)
-
-        id1 = dominant
-        id2 = _id
+        print('ID of assembly to compare to:         ', id1)
+        print('ID of assembly to be added to lattice:', id2)
 
         a1 = self._mgr[id1]
         a2 = self._mgr[id2]
-        # print('a1 nodes: ', a1.nodes)
-        # print('a2 nodes: ', a2.nodes)
+        ''' HR 05/07/22 Workaround to avoid passing tau to method '''
+        # mu1 = [el[0] for el in matches]
+        mu2 = [el[1] for el in matches]
+        tau2 = [el for el in a2.nodes if el not in mu2]
 
 
-
-        '''
-        MAIN SECTION:
-            1. DO NODE COMPARISON AND COMPUTE PAIR-WISE SIMILARITIES
-            2. GET NODE MAP BETWEEN DOMINANT AND NEW ASSEMBLIES
-            3. ADD NEW ASSEMBLY TO LATTICE GRAPH
-        '''
-        results = self.matching_strategy(id1, id2, *args, **kwargs)[1]
-        matches = dict(results[0])
-        tau1, tau2 = results[3], results[4]
-
-        # print('results[1]: ', results)
-        # print('matches: ', matches)
-        # print('tau1: ', tau1)
-        # print('tau2: ', tau2)
-
-        ''' Show results '''
-        print('Mapping results: ')
-        f = 'screen_name'
-        for k,v in matches.items():
+        print('Matches to add to lattice: ')
+        if 'field' in kwargs:
+            f = kwargs['field']
+        else:
+            f = self.MATCHING_FIELD_DEFAULT_2
+        # for k,v in matches.items():
+        for k,v in matches:
             print('a1 node: ', k, a1.nodes[k][f], 'a2 node: ', v, a2.nodes[v][f])
 
         '''
@@ -1231,7 +1348,8 @@ class AssemblyManager():
         '''
 
         ''' Append to existing master node dict if already present... '''
-        for n1,n2 in matches.items():
+        # for n1,n2 in matches.items():
+        for n1,n2 in matches:
             ''' Returns None if not present... '''
             master_node = self.get_master_node(id1, n1)
             ''' ...but if already present, add... '''
@@ -1260,28 +1378,16 @@ class AssemblyManager():
                 self._lattice.edges[(m1,m2)].update({id2:(n1,n2)})
 
         ''' Add to lattice list '''
-        self._assemblies_in_lattice.append(id1)
+        self._assemblies_in_lattice.append(id2)
+        print('Done AddToLattice for assembly ID', id2)
 
-        return True
+        return matches, id1, id2
 
 
 
     def RemoveFromLattice(self, _id):
 
         print('Running "RemoveFromLattice"')
-
-        ''' HR 18/03/22 Integrated this from "remove_assembly" as redundant
-                        Old code from there retained below '''
-        # def remove_assembly(self, _id):
-        #     if _id in self._mgr:
-        #         print('Assembly ', _id, 'found in and removed from manager')
-        #         ''' Try and remove from lattice '''
-        #         self.RemoveFromLattice(_id)
-        #         self._mgr.pop(_id)
-        #         return True
-        #     else:
-        #         print('Assembly ', _id, 'not found in manager; could not be removed')
-        #         return False
 
         ''' ----------------------- '''
         ''' Preparatory stuff '''
@@ -1344,6 +1450,7 @@ class AssemblyManager():
 
         ''' Remove from _mgr and lattice list '''
         self._assemblies_in_lattice.remove(_id)
+        self._mgr.pop(_id)
 
         return True
 
@@ -1388,169 +1495,6 @@ class AssemblyManager():
 
 
 
-    # ''' ----------------------------------------------------------------------
-    #     HR June 21: All similarity/assembly matching methods here,
-    #         refactored from StepParse class methods
-    #     ----------------------------------------------------------------------
-    # '''
-
-
-
-    # '''
-    # HR June 21 Must refactor this, moved from StepParse class method
-    # NOT TESTED
-    # '''
-    # # ''' ---------------
-    # # TREE RECONCILIATION
-    # # HR 3/6/20
-    # # Based on Networkx "optimal_edit_paths" method
-
-    # # a1 and a2 are assemblies 1 and 2
-    # # Call as "paths, cost = StepParse.Reconcile(a1, a2)"
-    # # ----------------'''
-
-    # def Reconcile(self, id1, id2, lev_tol = 0.1):
-
-    #     ''' -------------------------------------------
-    #     STAGE 1: MAP NODES/EDGES B/T THE TWO ASSEMBLIES
-
-    #     Currently done simply via tags
-    #     More sophisticated metrics to be implemented in future
-
-    #     Method of assembly class (StepParse) to set item tags to their IDs
-    #     --------------------------------------------'''
-    #     a1 = self._mgr[id1]
-    #     a2 = self._mgr[id2]
-
-    #     a1.set_all_tags()
-    #     a2.set_all_tags()
-
-
-
-    #     def similarity(str1, str2):
-
-    #         _lev_dist  = nltk.edit_distance(str1, str2)
-    #         _sim = 1 - _lev_dist/max(len(str1), len(str2))
-
-    #         return _lev_dist, _sim
-
-
-
-    #     # def remove_special_chars(_str):
-
-    #     #     # Strip out special characters
-    #     #     _str = re.sub('[!@#$_]', '', _str)
-
-    #     #     return _str
-
-
-
-    #     ''' Comparing nodes directly gives equality simply if both are NX nodes...
-    #         ...i.e. same object type, but this isn't good enough...'
-    #         ...so equality in this context defined as having same tags '''
-    #     def return_eq(item1, item2):
-
-    #         _eq = False
-
-    #         tag1 = item1['tag']
-    #         tag2 = item2['tag']
-
-    #         ''' 1. Simple equality test based on tags
-    #             (which are just IDs copied to "tag" field)... '''
-    #         _eq = tag1 == tag2
-    #         if _eq:
-    #             print('Mapped ', tag1, 'to ', tag2)
-
-    #         # ''' 2. ...then do test based on parts contained by nodes... '''
-    #         # if tag1 and tag2 in (a1.nodes or a2.nodes) and not _eq:
-    #         #     try:
-    #         #         _eq = item1['parts'] == item2['parts']
-    #         #     except:
-    #         #         pass
-
-    #         # ''' 3. ...then do test based on Levenshtein distance b/t items, if leaves '''
-    #         # if not _eq and (tag1 and tag2 in (a1.leaves or a2.leaves)):
-
-    #         #     tag1_ = remove_special_chars(tag1)
-    #         #     tag2_ = remove_special_chars(tag2)
-
-    #         #     try:
-    #         #         dist = similarity(tag1_, tag2_)
-    #         #         _eq  = dist < lev_tol
-    #         #     except:
-    #         #         pass
-
-    #         # if _eq:
-    #         #     print('Nodes/edges mapped:     ', tag1, tag2)
-    #         # else:
-    #         #     pass
-
-    #         return _eq
-    #         # return item1 == item2
-
-
-
-
-    #     def MyReconcile(a1, a2, node_match = None, edge_match = None):
-
-    #         a1.set_all_tags()
-    #         a2.set_all_tags()
-
-    #         n1 = set(a1.nodes)
-    #         n2 = set(a2.nodes)
-    #         e1 = set(a1.edges)
-    #         e2 = set(a2.edges)
-
-    #         node_deletions = []
-    #         node_additions = []
-    #         edge_deletions = []
-    #         edge_additions = []
-
-    #         ''' Find additions and deletions by set difference (relative complement) '''
-    #         #
-    #         for node in n1 - n2:
-    #             node_deletions.append((node, None))
-    #         print('Node deletions: ', node_deletions)
-
-    #         for node in n2 - n1:
-    #             node_additions.append((None, node))
-    #         print('Node deletions: ', node_additions)
-
-    #         for edge in e1 - e2:
-    #             edge_deletions.append((edge, None))
-    #         print('Edge deletions: ', edge_deletions)
-
-    #         for edge in e2 - e1:
-    #             edge_additions.append((None, edge))
-    #         print('Edge additions: ', edge_additions)
-
-
-
-    #         paths = [list(set(node_deletions + node_additions)), list(set(edge_deletions + edge_additions))]
-
-    #         cost = len(node_deletions) + len(node_additions) + len(edge_deletions) + len(edge_additions)
-
-    #         return paths, cost
-
-
-    #     ''' -----------------------------------------------------
-    #     STAGE 2: FIND EDIT PATHS VIA NETWORKX AND GENERATE REPORT
-    #     ------------------------------------------------------'''
-
-    #     # paths, cost_nx = nx.optimal_edit_paths(a1, a2, node_match = return_eq, edge_match = return_eq)
-    #     # paths = paths[0]
-
-    #     paths, cost = MyReconcile(a1, a2, node_match = return_eq, edge_match = return_eq)
-
-    #     node_edits = [el for el in paths[0] if el[0] != el[1]]
-    #     edge_edits = [el for el in paths[1] if el[0] != el[1]]
-    #     cost_from_edits = len(node_edits) + len(edge_edits)
-
-    #     print('Node edits: {}\nEdge edits: {}\nTotal cost (Networkx): {}\nTotal cost (no. of edits): {}'.format(
-    #         node_edits, edge_edits, cost, cost_from_edits))
-
-    #     return paths, cost, cost_from_edits, node_edits, edge_edits
-
 
 
     ''' ---------------------------------------------------------
@@ -1571,14 +1515,14 @@ class AssemblyManager():
         a2 = self._mgr[id2]
 
         ''' Check for/set defaults '''
-        if not nodes1:
-            nodes1 = [node for node in a1.nodes]
-        if not nodes2:
-            nodes2 = [node for node in a2.nodes]
         # if not nodes1:
-        #     nodes1 = a1.leaves
+        #     nodes1 = [node for node in a1.nodes]
         # if not nodes2:
-        #     nodes2 = a2.leaves
+        #     nodes2 = [node for node in a2.nodes]
+        if not nodes1:
+            nodes1 = a1.leaves
+        if not nodes2:
+            nodes2 = a2.leaves
 
         if not stages:
             stages = self.MATCHING_STRATEGY_STAGES_DEFAULT
@@ -1613,8 +1557,9 @@ class AssemblyManager():
         mu2 = []
         # nu1 = []
         # nu2 = []
-        tau1 = [el for el in nodes1]
-        tau2 = [el for el in nodes2]
+        ''' HR 28/06/22 Very important! This means non-leaves are accounted for '''
+        tau1 = [node for node in a1.nodes]
+        tau2 = [node for node in a2.nodes]
 
         for i, stage in enumerate(stages):
 
@@ -1622,7 +1567,7 @@ class AssemblyManager():
             blocking_method, blocking_kwargs = stage[0]
             if (not blocking_method) or (blocking_method not in self.MATCHING_STRATEGY_METHODS):
                 print('Blocking stage method not found or specified; skipping stage and defaulting to all unmatched nodes')
-                blocks = [(tau1, tau2)]
+                blocks = {0:(tau1, tau2)}
             else:
                 ''' Do blocking sub-stage here and return list of blocks '''
                 blocking_method = self.MATCHING_STRATEGY_METHODS[blocking_method]
@@ -1668,9 +1613,9 @@ class AssemblyManager():
             '''
 
             '''Add matches within stage (matches) to master set/lists of matches (mu) and unmatches (tau) '''
+            mu = matches | mu
             print('Matches: ', matches)
             print('mu:      ', mu)
-            mu = matches | mu
             # ''' Remove matches from unmatched sets '''
             # nu = nu - mu
 
@@ -1684,7 +1629,7 @@ class AssemblyManager():
 
             ''' -- '''
 
-        print('LEAF MATCHES:', mu)
+        print('\nLEAF MATCHES:\n', mu)
 
 
 
@@ -1696,16 +1641,16 @@ class AssemblyManager():
 
         if match_subs:
             matches = self.match_by_comb(id1, id2, mu)[0]
-            print('SUBS MATCHES:', matches)
+            print('\nSUBS MATCHES:\n', matches)
 
             '''
             UPDATE GLOBAL MATCHES ETC.
             '''
 
             '''Add matches within stage (matches) to master set/lists of matches (mu) and unmatches (tau) '''
+            mu = matches | mu
             print('Matches: ', matches)
             print('mu:      ', mu)
-            mu = matches | mu
             # ''' Remove matches from unmatched sets '''
             # nu = nu - mu
 
@@ -2176,7 +2121,7 @@ class AssemblyManager():
             vol2 = np.prod(dim2)
             phi = vol1/vol2
         else:
-            print('   DO NOT SCALE!')
+            # print('   DO NOT SCALE!')
             phi = 1
 
         ''' Calculate similarity '''
@@ -3758,10 +3703,10 @@ class StepParse(nx.DiGraph):
         ''' Get parent of node; return None if parent not present '''
         try:
             parent = [el for el in self.predecessors(node)][-1]
-            print('Found parent of ', node,': ', parent)
+            # print('Found parent of ', node,': ', parent)
             return parent
         except:
-            print('Could not find parent of node ', node, '; returning None')
+            # print('Could not find parent of node ', node, '; returning None')
             return None
 
 

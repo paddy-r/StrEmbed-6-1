@@ -453,18 +453,153 @@ class DataEntryDialog(wx.Dialog):
 
 
 
-# class SpecDialog(wx.Dialog):
-#     def __init__(self, choices, title):
-#         wx.Dialog.__init__(self, None, title = title)
-#         cb = wx.ComboBox(self,
-#                          choices = choices,
-#                          value = "")
-#         ok_button = wx.Button(self, wx.ID_OK)
+class DecisionDialog(wx.MessageDialog):
+    def __init__(self, parent = None, message = 'Decision dialog', caption = 'OK to proceed?', style = wx.OK | wx.CANCEL):
+        super().__init__(parent = parent, message = message, caption = caption, style = style)
 
-#         sizer = wx.BoxSizer(wx.VERTICAL)
-#         sizer.Add(cb, 0, wx.ALL|wx.CENTER, 5)
-#         sizer.Add(ok_button, 0, wx.ALL|wx.CENTER, 5)
-#         self.SetSizer(sizer)
+
+
+class ReconciliationSpecDialog(wx.Dialog):
+    def __init__(self, parent, ids, blocking_modes, matching_properties, *args, **kwargs):
+        super().__init__(parent = parent, title = 'Reconciliation specification')
+
+        self.ids = ids
+        self.blocking_modes = blocking_modes
+        self.matching_properties = matching_properties
+
+        ''' Main sizer '''
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+
+
+        ''' 1. Set up assembly selection section '''
+        pnl1 = wx.Panel(self)
+
+        sb = wx.StaticBox(pnl1, label = 'Choose assembly for comparison')
+        sbs = wx.StaticBoxSizer(sb, orient = wx.VERTICAL)
+        ''' Populate with all available assemblies '''
+        self.assembly_dict = {}
+        for i, id_present in enumerate(self.ids):
+            label = 'Assembly ' + str(id_present)
+            if i == 0:
+                style = wx.RB_GROUP
+            else:
+                style = 0
+            radio_button = wx.RadioButton(pnl1, label = label, style = style)
+            sbs.Add(radio_button)
+            self.assembly_dict[id_present] = radio_button
+
+        pnl1.SetSizer(sbs)
+
+
+        ''' 2. Set up blocking mode section '''
+        pnl2 = wx.Panel(self)
+
+        sb2 = wx.StaticBox(pnl2, label = 'Choose blocking mode')
+        sbs2 = wx.StaticBoxSizer(sb2, orient = wx.VERTICAL)
+        ''' Populate with all available assemblies '''
+        self.blocking_dict = {}
+        for i, mode in enumerate(self.blocking_modes):
+            label = mode
+            if i == 0:
+                style = wx.RB_GROUP
+            else:
+                style = 0
+            radio_button = wx.RadioButton(pnl2, label = label, style = style)
+            sbs2.Add(radio_button)
+            self.blocking_dict[mode] = radio_button
+
+        pnl2.SetSizer(sbs2)
+
+
+
+        ''' 3. Set up matching properties section '''
+        pnl3 = wx.Panel(self)
+
+        sb3 = wx.StaticBox(pnl3, label = 'Choose assembly properties to consider')
+        sbs3 = wx.StaticBoxSizer(sb3, orient = wx.VERTICAL)
+        ''' Populate with all available assemblies '''
+        self.property_dict = {}
+        for i, _property in enumerate(self.matching_properties):
+            label = _property
+            if i == 0:
+                style = wx.RB_GROUP
+            else:
+                style = 0
+            check_box = wx.CheckBox(pnl3, -1, label)
+            sbs3.Add(check_box)
+            self.property_dict[_property] = check_box
+
+        pnl3.SetSizer(sbs3)
+
+
+
+        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
+        okButton = wx.Button(self, wx.ID_OK)
+        cancelButton = wx.Button(self, wx.ID_CANCEL)
+        hbox2.Add(okButton)
+        hbox2.Add(cancelButton)
+
+
+
+        vbox.Add(pnl1, proportion = 1, flag = wx.ALL|wx.EXPAND, border = 5)
+        vbox.Add(pnl2, proportion = 1, flag = wx.ALL|wx.EXPAND, border = 5)
+        vbox.Add(pnl3, proportion = 1, flag = wx.ALL|wx.EXPAND, border = 5)
+        vbox.Add(hbox2, flag = wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border = 10)
+
+        self.SetSizer(vbox)
+        self.Fit()
+
+
+
+    def get_spec(self):
+        print('Running "get_spec"')
+        ''' Grab ID of assembly for comparison, blocking mode and weights '''
+        # assembly_id = [(v,k.GetValue()) for k,v in self.assembly_dict.items()]
+        # blocking_mode = [(v,k.GetValue()) for k,v in self.blocking_dict.items()]
+        # weights = [(v,k.GetValue()) for k,v in self.property_dict.items()]
+        
+        assembly_id = [_id for _id in self.ids if self.assembly_dict[_id].GetValue()][0]
+        blocking_mode = [mode for mode in self.blocking_modes if self.blocking_dict[mode].GetValue()][0]
+        weights = [int(self.property_dict[_property].GetValue()) for _property in self.matching_properties]
+        return assembly_id, blocking_mode, weights
+
+
+
+class ReconciliationResultsDialog(wx.Dialog):
+    def __init__(self, parent, id1, id2, matches_text, *args, **kwargs):
+        super().__init__(parent = parent, title = 'Reconciliation report: click OK to add to lattice')
+
+        ''' Main sizer '''
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+
+
+        ''' List of matches in text box, for user to review '''
+        panel = wx.Panel(self)
+        panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        textctrl = wx.TextCtrl(panel,
+                                value = matches_text,
+                                size = (500,200),
+                                style = wx.TE_MULTILINE | wx.TE_READONLY | wx.EXPAND | wx.HSCROLL)
+        panel_sizer.Add(textctrl)
+        panel.SetSizer(panel_sizer)
+
+
+
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        okButton = wx.Button(self, wx.ID_OK)
+        cancelButton = wx.Button(self, wx.ID_CANCEL)
+        hbox.Add(okButton)
+        hbox.Add(cancelButton)
+
+
+
+        vbox.Add(panel, proportion = 1, flag = wx.ALL|wx.EXPAND, border = 5)
+        vbox.Add(hbox, flag = wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border = 10)
+
+        self.SetSizer(vbox)
+        self.Fit()
 
 
 
@@ -507,6 +642,8 @@ class MainWindow(wx.Frame):
         self.LATTICE_PLOT_MODE_DEFAULT = True
         self.COMMON_SELECTOR_VIEW = True
         self.SELECT_ALL_CHILDREN = False
+
+        self.ADD_TO_LATTICE_DEFAULT = True
 
         self.origin = (0,0)
         self.click_pos = None
@@ -770,7 +907,7 @@ class MainWindow(wx.Frame):
 
         # recon_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnCalcSim, id = ID_CALC_SIM)
         # recon_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnMapAssemblies, id = ID_ASS_MAP)
-        # recon_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnRecon, id = ID_RECON)
+        recon_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnRecon, id = ID_RECON)
 
         suggestions_ops.Bind(RB.EVT_RIBBONBUTTONBAR_CLICKED, self.OnSuggestionsButton, id = ID_SUGGEST)
         suggestions_ops.Bind(RB.EVT_RIBBONBUTTONBAR_DROPDOWN_CLICKED, self.OnSuggestionsDropdown, id = ID_SUGGEST)
@@ -810,36 +947,36 @@ class MainWindow(wx.Frame):
 
 
 
-    def get_selected_assemblies(self):
+    # def get_selected_assemblies(self):
 
-        self.AddText('Trying to get selected assemblies...')
+    #     self.AddText('Trying to get selected assemblies...')
 
-        if self.selector_1.GetSelection() == wx.NOT_FOUND or self.selector_2.GetSelection() == wx.NOT_FOUND:
-            self.AddText('Two assemblies not selected')
-            return
+    #     if self.selector_1.GetSelection() == wx.NOT_FOUND or self.selector_2.GetSelection() == wx.NOT_FOUND:
+    #         self.AddText('Two assemblies not selected')
+    #         return
 
-        s1 = self.selector_1.GetSelection()
-        s2 = self.selector_2.GetSelection()
+    #     s1 = self.selector_1.GetSelection()
+    #     s2 = self.selector_2.GetSelection()
 
-        if s1 == s2:
-            self.AddText('Two different assemblies must be selected')
-            return None
+    #     if s1 == s2:
+    #         self.AddText('Two different assemblies must be selected')
+    #         return None
 
-        name1 = self.selector_1.GetString(s1)
-        name2 = self.selector_1.GetString(s2)
-        self.AddText('Assemblies selected:')
-        print(name1)
-        print(name2)
+    #     name1 = self.selector_1.GetString(s1)
+    #     name2 = self.selector_1.GetString(s2)
+    #     self.AddText('Assemblies selected:')
+    #     print(name1)
+    #     print(name2)
 
-        # a1 = self._assembly_manager._mgr[id1]
-        # a2 = self._assembly_manager._mgr[id2]
-        p1 = [el for el in self._notebook_manager if el.name == name1][0]
-        id1 = self._notebook_manager[p1]
-        p2 = [el for el in self._notebook_manager if el.name == name2][0]
-        id2 = self._notebook_manager[p2]
+    #     # a1 = self._assembly_manager._mgr[id1]
+    #     # a2 = self._assembly_manager._mgr[id2]
+    #     p1 = [el for el in self._notebook_manager if el.name == name1][0]
+    #     id1 = self._notebook_manager[p1]
+    #     p2 = [el for el in self._notebook_manager if el.name == name2][0]
+    #     id2 = self._notebook_manager[p2]
 
-        # return a1, a2
-        return id1, id2
+    #     # return a1, a2
+    #     return id1, id2
 
 
 
@@ -921,6 +1058,93 @@ class MainWindow(wx.Frame):
 
     #     self.AddText('Tree reconciliation finished')
     #     self.DoNothingDialog(event, textout)
+
+
+
+    ''' HR 24/06/22 To create BoM reconciliation dialog and retrieve:
+                    (1) Blocking spec (by name, by BB or none)
+                    (2) Metrics to consider (name, local structure, BB, topology) '''
+    def OnRecon(self, event = None, *args, **kwargs):
+        ''' Check that active assembly not already in lattice '''
+        id2 = self.assembly.assembly_id
+        # if id2 in self._assembly_manager._assemblies_in_lattice:
+        #     print('Assembly already in lattice; not proceeding with reconciliation')
+        #     return
+
+        ''' Set up choices '''
+        ids = [el for el in self._assembly_manager._assemblies_in_lattice]
+        blocking_dict = {'Block by name':'bn', 'Block by BB':'bb', 'No blocking':None}
+        blocking_modes = blocking_dict.keys()
+        matching_properties = ['By name', 'By local structure', 'By BB', 'By topology']
+
+        ''' Create recon spec dialog in context manager '''
+        with ReconciliationSpecDialog(parent = self,
+                                      ids = ids,
+                                      blocking_modes = blocking_modes,
+                                      matching_properties = matching_properties) as recon_dialog:
+            if recon_dialog.ShowModal() == wx.ID_OK:
+                recon_spec = recon_dialog.get_spec()
+                # recon_spec = True
+            else:
+                # recon_spec = None
+                recon_spec = None
+                print('Could not get recon spec; returning...')
+                return
+
+        print('recon_spec:', recon_spec)
+
+        if recon_spec:
+            print('\nProceeding with recon...\n')
+            # return
+        else:
+            print('\nAborting reconciliation...\n')
+            return
+
+        ''' Separate all recon specs '''
+        id1 = recon_spec[0]
+        blocking_mode = blocking_dict[recon_spec[1]]
+        weights = recon_spec[2]
+        ''' Set all weights to zero if all one: WORKAROUND FOR NOW '''
+        if set(weights) == {0}:
+            ''' Set all to 1 if all zero '''
+            print('Resetting property weights to 1, as all zero...')
+            weights = [1 for el in weights]
+
+        print('recon_args:', id1, blocking_mode, weights)
+
+        ''' Add BoM to lattice using retrieved matches '''
+        results = self._assembly_manager.matching_strategy(id1 = id1, id2 = id2, stages = [((blocking_mode, {}), ('mb', {'weights': weights}))])
+        # if not results:
+        #     return
+
+        print('Matching results:\n', results)
+        print('\nFinished "OnRecon"\n')
+
+        matches = results[1][0]
+        print('Matches:', matches)
+        matches_text = []
+        ass1 = self._assembly_manager._mgr[id1]
+        ass2 = self._assembly_manager._mgr[id2]
+        for match in matches:
+            text1 = str(id1) + ': node ' + str(match[0]) + '; name: ' + str(ass1.nodes[match[0]]['screen_name'])
+            text2 = str(id2) + ': node ' + str(match[1]) + '; name: ' + str(ass2.nodes[match[1]]['screen_name'])
+            matches_text.append(text1 + '; ' + text2 + '\n')
+        matches_text = ''.join(matches_text)
+
+        print('Formatted matching text:\n', matches_text, '\n')
+
+        ''' Create report dialog for user to decide whether to add to lattice '''
+        report_dialog = ReconciliationResultsDialog(parent = self,
+                                                    id1 = id1,
+                                                    id2 = id2,
+                                                    matches_text = matches_text)
+        if not report_dialog.ShowModal() == wx.ID_OK:
+            print('Not adding to lattice')
+            return
+
+        print('Trying to add assembly', id2, 'to lattice...')
+        self._assembly_manager.AddToLattice(id1, id2, matches)
+        print('Added assembly', id2, 'to lattice')
 
 
 
@@ -1075,11 +1299,36 @@ class MainWindow(wx.Frame):
 
 
     ''' HR 03/03/22 To add assembly to lattice, with dialog for user spec '''
-    def OnAddToLattice(self, event = None):
+    def OnAddToLattice(self, event = None, *args, **kwargs):
         print('Running "OnAddToLattice"')
-        ''' Not tested '''
-        _id = self.assembly.assembly_id
-        self._assembly_manager.AddToLattice(_id)
+        # ''' Not tested '''
+        # _id = self.assembly.assembly_id
+
+        # ''' HR 05/07/22 MUST ADD DECISION HERE -> SIMPLE OR NORMAL ADD TO LATTICE '''
+        
+        # ''' Must get user input here '''
+        
+        # ''' Then add to lattice if user confirms '''
+        # results = self.matching_strategy(id1, id2, *args, **kwargs)[1]
+        # matches = dict(results[0])
+        # self._assembly_manager.AddToLattice(id1, id2, matches)
+
+        ''' HR 05/07/22 Allow user to decide whether to add assembly to lattice '''
+
+        ''' If manager is empty, do simple add '''
+        if len(self._assembly_manager._assemblies_in_lattice) == 0:
+            with DecisionDialog(parent = self,
+                                message = 'Assembly load dialog',
+                                caption = 'OK to add loaded assembly to lattice?') as dialog:
+                if dialog.ShowModal() == wx.ID_OK:
+                    print('Adding assembly to lattice...')
+                    self._assembly_manager.AddToLatticeSimple(_id)
+                else:
+                    print('Not adding loaded assembly to lattice; returning...')
+
+        else:
+            self.OnRecon()
+            print('Finished "OnAddToLattice"')
 
 
 
@@ -1089,6 +1338,10 @@ class MainWindow(wx.Frame):
         ''' Not tested '''
         _id = self.assembly.assembly_id
         self._assembly_manager.RemoveFromLattice(_id)
+
+        self.DisplayLattice(set_pos = True, called_by = 'OnRemoveFromLattice')
+
+        self.Update3DView()
 
 
 
@@ -1125,7 +1378,7 @@ class MainWindow(wx.Frame):
 
 
 
-    def OnFileOpen(self, event = None, add_to_lattice = True):
+    def OnFileOpen(self, event = None, add_to_lattice = None):
 
         ''' Get STEP filename '''
         # open_filename = self.GetFilename(ender = ["step", "stp"]).split("\\")[-1]
@@ -1192,13 +1445,35 @@ class MainWindow(wx.Frame):
 
         ''' ------------------- '''
 
-        ''' Add to lattice '''
-        if add_to_lattice:
-            print('Adding assembly to lattice')
-            self._assembly_manager.AddToLattice(_id)
-            ''' Display lattice and update 3D viewer '''
-            self.DisplayLattice(set_pos = True, called_by = 'OnFileOpen')
+        ''' Older code redundant '''
+        # ''' Add to lattice '''
+        # if not add_to_lattice:
+        #     add_to_lattice = self.ADD_TO_LATTICE_DEFAULT
 
+        # if add_to_lattice:
+        #     print('Adding assembly to lattice')
+        #     self._assembly_manager.AddToLattice(_id)
+
+        ''' HR 05/07/22 Allow user to decide whether to add loaded assembly to lattice '''
+
+        ''' If manager is empty, do simple add '''
+        if len(self._assembly_manager._assemblies_in_lattice) == 0:
+            with DecisionDialog(parent = self,
+                                message = 'Assembly load dialog',
+                                caption = 'OK to add loaded assembly to lattice?') as dialog:
+                if dialog.ShowModal() == wx.ID_OK:
+                    print('Adding assembly to lattice...')
+                    self._assembly_manager.AddToLatticeSimple(_id)
+                else:
+                    print('Not adding loaded assembly to lattice; returning...')
+
+        else:
+            self.OnRecon()
+
+        print('Added assembly to lattice; refreshing lattice and 3D views')
+
+        ''' Display lattice and update 3D viewer '''
+        self.DisplayLattice(set_pos = True, called_by = 'OnFileOpen')
         # self.Update3DView(selected_items = self.selected_items)
         self.Update3DView()
 
@@ -1410,8 +1685,9 @@ class MainWindow(wx.Frame):
         AUS = []
         for node in AUP:
             node_dict = self.assembly.nodes[node]
-            if not node_dict['shape_loc'][0]:
-                continue
+            if 'shape_loc' in node_dict:
+                if not node_dict['shape_loc'][0]:
+                    continue
             if 'hide' in node_dict:
                 if not node_dict['hide']:
                     continue
@@ -2269,6 +2545,9 @@ class MainWindow(wx.Frame):
             ''' Get nearest y value (same as lattice level) '''
             # y_list = self.assembly.levels_p_sorted[:]
             y_list = sorted(list(plot_obj.S_p))
+            if not y_list:
+                print('No nodes found; aborting...')
+                return
             # # Must prepend lattice level of single part to list
             # y_list.insert(0, self.assembly.part_level)
             # y_list.insert(0, plot_obj.part_level)
@@ -2283,6 +2562,9 @@ class MainWindow(wx.Frame):
             x_all  = [node for node in plot_obj.levels_map[y_]]
             x_dict = {plot_obj.pos[node][0]:node for node in x_all}
             x_list = sorted([k for k in x_dict])
+            if not x_list:
+                print('No nodes found; aborting...')
+                return
             x_  = get_nearest(event.xdata, x_list)
             print('x_list = ', x_list, '\n')
             print('x_dict = ', x_dict, '\n')
@@ -2886,7 +3168,7 @@ class MainWindow(wx.Frame):
     def OnAbout(self, event):
         ''' Show program info '''
         abt_text = """StrEmbed-6-1: A user interface for manipulation of design configurations\n
-            Copyright (C) 2019-2021 Hugh Patrick Rice\n
+            Copyright (C) 2019-2022 Hugh Patrick Rice\n
             This research is supported by the UK Engineering and Physical Sciences
             Research Council (EPSRC) under grant number EP/S016406/1.\n
             All code can be found here: https://github.com/paddy-r/StrEmbed-6-1,
@@ -3002,10 +3284,10 @@ class MainWindow(wx.Frame):
 
     ''' HR 08/04/22 To account for successful deepcopy functionality;
                     see notes above "PickleSWIG" mixin at top '''
-    def MakeDuplicateAssemblyPage(self, event = None, add_to_lattice = True):
+    def MakeDuplicateAssemblyPage(self, event = None, add_to_lattice = None):
 
         self.Freeze()
-        print('Trying to duplicate assembly with new page...')
+        print('Trying to create new assembly page...')
 
         ''' Duplicate assembly object and add to NB manager '''
         old_id = self.assembly.assembly_id
@@ -3042,11 +3324,27 @@ class MainWindow(wx.Frame):
         except:
             print("Couldn't clear lattice axes")
 
-        # ''' Add to lattice '''
-        # self._assembly_manager.AddToLattice(new_id)
-        ''' Duplicate to lattice '''
-        if add_to_lattice:
-            self._assembly_manager.DuplicateInLattice(old_id, new_id)
+        ''' Old code redundant '''
+        # if not add_to_lattice:
+        #     add_to_lattice = self.ADD_TO_LATTICE_DEFAULT
+
+        # ''' Duplicate to lattice '''
+        # if add_to_lattice:
+        #     self._assembly_manager.DuplicateInLattice(old_id, new_id)
+
+        ''' HR 05/07/22 Allow user to decide whether to add duplicated assembly to lattice '''
+        ''' Create recon spec dialog '''
+        with DecisionDialog(parent = self,
+                            message = 'Assembly duplication dialog',
+                            caption = 'OK to add duplicated assembly to lattice?') as dialog:
+            if not dialog.ShowModal() == wx.ID_OK:
+                print('Not adding duplicated assembly to lattice; returning...')
+                return
+
+        ''' Add assembly to lattice '''
+        print('Duplicating assembly in lattice...')
+        self._assembly_manager.DuplicateInLattice(old_id, new_id)
+        print('Duplicated assembly in lattice; refreshing lattice and 3D views')
 
         ''' Display lattice and update 3D viewer '''
         self.DisplayLattice(set_pos = True, called_by = 'MakeDuplicateAssemblyPage')
@@ -3062,7 +3360,7 @@ class MainWindow(wx.Frame):
 
 
 
-    def MakeImportedAssemblyPage(self, add_to_lattice = True):
+    def MakeImportedAssemblyPage(self, add_to_lattice = None):
         print('Running "OnImportAssembly')
 
         ''' Get file to import '''
@@ -3117,9 +3415,33 @@ class MainWindow(wx.Frame):
         except:
             print("Couldn't clear lattice axes")
 
-        ''' Add to lattice '''
-        if add_to_lattice:
-            self._assembly_manager.AddToLattice(id_imported)
+        ''' Older code redundant '''
+        # ''' Add to lattice '''
+        # if not add_to_lattice:
+        #     add_to_lattice = self.ADD_TO_LATTICE_DEFAULT
+
+        # if add_to_lattice:
+        #     self._assembly_manager.AddToLattice(id_imported)
+
+        ''' HR 05/07/22 Allow user to decide whether to add imported assembly to lattice '''
+
+        ''' If manager is empty, do simple add '''
+        if len(self._assembly_manager._assemblies_in_lattice) == 0:
+            with DecisionDialog(parent = self,
+                                message = 'Assembly import dialog',
+                                caption = 'OK to add imported assembly to lattice?') as dialog:
+                if dialog.ShowModal() == wx.ID_OK:
+                    print('Adding assembly to lattice...')
+                    self._assembly_manager.AddToLatticeSimple(id_imported)
+                else:
+                    print('Not adding imported assembly to lattice; returning...')
+
+        else:
+            self.OnRecon()
+
+        print('Added assembly lattice; refreshing lattice and 3D views')
+
+
 
         ''' Display lattice and update 3D viewer '''
         self.DisplayLattice(set_pos = True, called_by = 'MakeImportedAssemblyPage')
@@ -3171,7 +3493,7 @@ class MainWindow(wx.Frame):
             filename is a timestamp '''
         defaultDir = os.getcwd()
         timestamp = time.strftime("%Y%m%d-%H%M%S")
-        defaultFile = "assembly_" + timestamp + self._assembly_manager.ASSEMBLY_EXTENSION_DEFAULT
+        defaultFile = "assembly_" + timestamp + '.' + self._assembly_manager.ASSEMBLY_EXTENSION_DEFAULT
 
         ''' Open file dialog and populate with default path and filename '''
         dialog_text = 'Export assembly to file'
