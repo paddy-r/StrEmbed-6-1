@@ -1,9 +1,9 @@
-## Quick start guide for running in Python or as standalone executable (Windows only)
+## Quick start guide for StrEmbed-6-1 as an executable (recommended; Windows only) or as a Python script
 
 Go to the latest release *via* the "Releases" tab, then either:
 
-1. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) and import into your Python environment.
-2. Download one of the executables (```.exe```) and run as a standalone app by double-clicking the downloaded file; the ```StrEmbed-6-1``` app will run and does not require any other files - or Python - to be installed on your machine.
+1. Download one of the executables (```.exe```). There is (1) a larger standalone version that is a single file and (2) a smaller version in a folder containing the required Python modules. Which ever version you choose, run it by double-clicking the executable file; the ```StrEmbed-6-1``` app will run and does not require any other files - or Python - to be installed on your machine.
+2. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) and import into your Python environment. Instructions for setting up your environment (not recommended) are given in the user manual.
 
 ___
 
@@ -15,7 +15,7 @@ Part of the Design Configuration Spaces (DCS) project hosted by the University o
 
 Hugh Rice (HR/HPR), Tom Hazlehurst (TH) and Hau Hing Chau (HHC)
 
-January 2020-December 2021
+January 2020-August 2022
 
 School of Mechanical Engineering  
 University of Leeds  
@@ -35,14 +35,14 @@ ___
 
 There are several ways to run ```StrEmbed-6-1```, which are described below and in more detail in the user manual. The simplest is to download the latest release, which contains all the Python scripts and a standalone executable file. To run ```StrEmbed-6_1``` you can then do one of the following:
 
-(1) Run as a Python script in your own environment. Two scripts are required:
+(1) Run as a Python script in your own environment. Two main scripts are required:
 
 1. ```StrEmbed_6_1``` (main script)
 2. ```step_parse_6_1``` (contains class for for file and graph operations)
 
-The above incorporate code (specifically for the 3D viewer) from ```Python-OCC``` [here](https://github.com/tpaviot/pythonocc-core). ```StrEmbed-6_1``` has a large number of dependencies that must also be installed in your environment. Contact the developers of those packages if you encounter problems. The script ```env_setup.txt``` can be run as a batch file in an Anaconda shell to create an environment in which ```StrEmbed-6-1``` will run.
+The above incorporate code (specifically for the 3D viewer) from ```Python-OCC``` [here](https://github.com/tpaviot/pythonocc-core). ```StrEmbed-6_1``` has a large number of dependencies that must also be installed in your environment. Contact the developers of those packages if you encounter problems. Detailed instructions for setting up your Python environment using Anaconda or Miniconda are given in the user manual, which is part of this package.
 
-(2) Run as a standalone executable. This does not require you to have Python or any IDE installed. Navigate to the "Releases" tab on the right of this page and download one of the executable files, *i.e.* those ending with  ```.exe```. Once downloaded, double-click on the file (Windows only) and the app will run. Please note that two executables are provided, with and without console output for debugging purposes. If you run the version with a concole and encounter any problems, please make a record of the output and contact the developers if you require help.
+(2) Run as a standalone executable. This does not require you to have Python or any IDE installed. Navigate to the "Releases" tab on the right of this page and download either the standalone executable or the folder containing a non-standalone executable. Once downloaded, double-click on the ```.exe``` file (Windows only) and the app will run. Both versions produce console output for debugging purposes. If you encounter any problems, please make a record of the output and contact the developers if you require help.
 
 Several STEP file examples are provided. The "Images" folder contains images necessary for building the application but not for running it.
 
