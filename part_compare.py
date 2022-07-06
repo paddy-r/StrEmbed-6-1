@@ -18,7 +18,7 @@ import sys
 partfind_folder = os.path.join(os.path.dirname(__file__), 'partfindv1')
 sys.path.insert(0, partfind_folder)
 
-# print('partfind folder:', partfind_folder)
+print('partfind folder:', partfind_folder)
 cwd_old = os.getcwd()
 os.chdir(partfind_folder)
 # print('current:', os.getcwd())
