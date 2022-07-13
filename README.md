@@ -51,3 +51,15 @@ Several STEP file examples are provided. The "Images" folder contains images nec
 ```StrEmbed-6-1``` was developed in Spyder, an IDE for Python that is packaged with the Anaconda distribution, which can be downloaded [here](https://www.anaconda.com/distribution/).
 
 ```StrEmbed-6-1``` is published under the GNU General Purpose License version 3, which is given in the LICENSE document.
+
+## Contact and issue reporting
+
+Please either raise an issue here at Github or contact me directly.
+
+*Contact:* Hugh Rice, h.p.rice@leeds.ac.uk
+
+## How to cite this repository
+
+- Copy or click the Zenodo link above, which has a corresponding DOI attached, and construct your own citation that contains it.
+- Depending on your style, your citation should look something like this: Rice HP (2022), *StrEmbed-6-1: A software prototype for product configuration management*, Github code repository, DOI: <latest DOI, see above>.
+- If you're unsure, please contact me.
