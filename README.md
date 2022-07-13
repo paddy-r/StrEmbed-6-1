@@ -1,5 +1,7 @@
 ## Quick start guide for StrEmbed-6-1 as an executable (recommended; Windows only) or as a Python script
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6806818.svg)](https://doi.org/10.5281/zenodo.6806818)
+
 Go to the latest release *via* the "Releases" tab, then either:
 
 1. Download the ```StrEmbed_6_1``` zip file at the "Releases" tab. There is when unpacked, the folder contains the required Python modules and an executable. Run it by double-clicking; the ```StrEmbed-6-1``` app will run and does not require any other files - or Python - to be installed on your machine.
