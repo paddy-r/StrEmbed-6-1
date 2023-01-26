@@ -1,2 +1,6 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+## Auto detect text files and perform LF normalization
+#* text=auto
+
+# HR 26/01/23 Normalise all line endings
+# Requires running "git add --renormalize ." then commit/push
+* text=auto eol=lf
