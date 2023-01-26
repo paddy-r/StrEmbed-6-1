@@ -1062,8 +1062,8 @@ class MainWindow(wx.Frame):
 
 
     ''' HR 24/06/22 To create BoM reconciliation dialog and retrieve:
-                    (1) Blocking spec (by name, by BB or none)
-                    (2) Metrics to consider (name, local structure, BB, topology) '''
+                    (1) Blocking spec (by name, by BB, by mass/volume or none)
+                    (2) Metrics to consider (name, local structure, mass/volume/BB, topology) '''
     def OnRecon(self, event = None, *args, **kwargs):
         ''' Check that active assembly not already in lattice '''
         id2 = self.assembly.assembly_id
@@ -1073,9 +1073,9 @@ class MainWindow(wx.Frame):
 
         ''' Set up choices '''
         ids = [el for el in self._assembly_manager._assemblies_in_lattice]
-        blocking_dict = {'Block by name':'bn', 'Block by BB':'bb', 'No blocking':None}
+        blocking_dict = {'Block by name':'bn', 'Block by BB':'bb', 'Block by mass':'bm', 'No blocking':None}
         blocking_modes = blocking_dict.keys()
-        matching_properties = ['By name', 'By local structure', 'By BB', 'By topology']
+        matching_properties = ['By name', 'By local structure', 'By size', 'By topology']
 
         ''' Create recon spec dialog in context manager '''
         with ReconciliationSpecDialog(parent = self,
@@ -1706,8 +1706,8 @@ class MainWindow(wx.Frame):
             shape, c = self.assembly.nodes[node]['shape_loc']
             self.display_shape(node, shape, c, transparency = 1)
 
-        self._page.occ_panel._display.View.FitAll()
-        self._page.occ_panel._display.View.ZFitAll()
+        # self._page.occ_panel._display.View.FitAll()
+        # self._page.occ_panel._display.View.ZFitAll()
         print('Done "Update3DView"')
 
 
@@ -1971,7 +1971,7 @@ class MainWindow(wx.Frame):
                 # print('Displaying U shape')
                 # self.erase_shape(ID)
 
-        self._page.occ_panel._display.View.FitAll()
+        # self._page.occ_panel._display.View.FitAll()
 
 
 
@@ -2252,7 +2252,7 @@ class MainWindow(wx.Frame):
         _page = self._notebook.GetPage(self._notebook.GetSelection())
         assembly_id = self._notebook_manager[_page]
         s1, s2, s3, s4 = self._assembly_manager.get_sims(assembly_id, assembly_id, items[0], items[1])[1]
-        sim_text = 'Name: {:10.3f}\nLocal structure: {:10.3f}\nBounding box: {:10.3f}\nShape: {:10.3f}'.format(s1, s2, s3, s4)
+        sim_text = 'Name: {:10.3f}\nLocal structure: {:10.3f}\nMass/volume/bounding box: {:10.3f}\nShape: {:10.3f}'.format(s1, s2, s3, s4)
 
         dialog = wx.MessageDialog(self, sim_text, 'Similarity scores for selected items', wx.OK)
         dialog.ShowModal()

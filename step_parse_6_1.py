@@ -44,6 +44,7 @@ import nltk
 import numpy as np
 from scipy.special import binom
 # from math import log
+from math import exp
 # import pandas as pd
 
 # # For powerset construction
@@ -103,6 +104,11 @@ from OCC.Display import OCCViewer
 from OCC.Core.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB
 from OCC.Core.TopLoc import TopLoc_Location
 from OCC.Core.TDF import TDF_LabelSequence, TDF_Label
+
+''' HR 28/07/22 For mass/volume computation of objects '''
+from OCC.Core.GProp import GProp_GProps
+from OCC.Core.BRepGProp import brepgprop_VolumeProperties
+
 
 
 ''' HR 09/12/21 Adding PartCompare import to allow shape-based similarity scores '''
@@ -246,6 +252,7 @@ def get_dimensions(shape, tol = 1e-6, use_mesh = True, get_centre = False):
     print('Getting aspect ratios for ', shape)
     bbox = Bnd_Box()
     bbox.SetGap(tol)
+    # bbox.SetGap(0)
     if use_mesh:
         mesh = BRepMesh_IncrementalMesh()
         mesh.SetParallelDefault(True)
@@ -258,8 +265,8 @@ def get_dimensions(shape, tol = 1e-6, use_mesh = True, get_centre = False):
     xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
     if get_centre:
         return xmin, ymin, zmin, xmax, ymax, zmax
-    dx,dy,dz = xmax-xmin, ymax-ymin, zmax-zmin
 
+    dx,dy,dz = xmax-xmin, ymax-ymin, zmax-zmin
     dim = dx,dy,dz
     ar = sorted((dx/dy, dy/dz, dz/dx))
     print('Done BB calcs for ', shape)
@@ -286,6 +293,116 @@ def get_bb_score(ar1, ar2, phi = 1):
 
     # print('Score: ', score)
     return score
+
+
+
+''' HR 28/07/22 To get mass/volume properties of object,
+                alternative to BB as that sometimes gives wrong answer
+                Adapted from here: https://github.com/tpaviot/pythonocc-demos/blob/master/examples/core_shape_properties.py
+                and here: https://stackoverflow.com/questions/66929762/extract-volume-from-a-step-file '''
+def get_mass_properties(shape):
+
+    props = GProp_GProps()
+    brepgprop_VolumeProperties(shape, props)
+
+    mass = props.Mass()
+    print("Mass = %s" % mass)
+
+    com = props.CentreOfMass()
+    com_x, com_y, com_z = com.Coord()
+    print("Center of mass: x = %f;y = %f;z = %f;" % (com_x, com_y, com_z))
+
+    # matrix_of_inertia = props.MatrixOfInertia()
+    # print("Matrix of inertia", matrix_of_inertia)
+
+    com = com_x, com_y, com_z
+    # return com, matrix_of_inertia, mass
+    return com, mass
+
+
+
+''' HR 03/08/22 To get similarity score based on two shape masses/volumes
+                Options are:
+                    (a) Divide by sum (default)
+                    (b) Divide by max '''
+def get_mass_score(mass1, mass2, *args, **kwargs):
+
+    # if 'do_max' in kwargs:
+    #     do_max = kwargs['do_max']
+    # else:
+    #     do_max = True
+    do_max = kwargs.get('do_max', True)
+
+    if do_max:
+        score = 1 - abs(mass1 - mass2)/max(mass1, mass2)
+    else:
+        score = 1 - abs(mass1 - mass2)/(mass1 + mass2)
+    return score
+
+
+
+''' HR 03/08/22 To get similarity score based on Euclidean distance '''
+def get_distance_score(pos1, pos2, *args, **kwargs):
+
+    # if 'scale' in kwargs:
+    #     scale = kwargs['scale']
+    # else:
+    #     scale = 1
+
+    # if 'exponential' in kwargs:
+    #     exponential = kwargs['exponential']
+    # else:
+    #     exponential = False
+
+    scale = kwargs.get('scale', 1)
+    exponential = kwargs.get('exponential', False)
+
+    dist = euclidean_distance(pos1, pos2, *args, **kwargs)
+
+    if not exponential:
+        score = 1.0/(1.0 + dist/scale)
+    else:
+        score = exp(-(dist/scale))
+    return score
+
+
+
+''' HR 01/08/22 To get distance from n-dimensional coordinates
+                Takes list of any length '''
+def distance_magnitude(coords, *args, **kwargs):
+
+    # if 'n' in kwargs:
+    #     n = kwargs['n']
+    # else:
+    #     n = 2
+    n = kwargs.get('n', 2)
+
+    if not type(coords) == list:
+        coords = list(coords)
+    result = sum([el**n for el in coords])**(1.0/n)
+
+    return result
+
+
+
+''' HR 01/08/22 To get Euclidean distance between two n-dimensional vectors '''
+def euclidean_distance(vector1, vector2, *args, **kwargs):
+
+    if not type(vector1) == list:
+        vector1 = list(vector1)
+    if not type(vector2) == list:
+        vector2 = list(vector2)
+
+    # if 'n' in kwargs:
+    #     n - kwargs['n']
+    # else:
+    #     n = 2
+    n = kwargs.get('n', 2)
+
+    vectors = [el for el in zip(vector1, vector2)]
+    result = sum([(el[1]-el[0])**n for el in vectors])**(1.0/n)
+
+    return result
 
 
 
@@ -447,6 +564,9 @@ class AssemblyManager():
         self.MATCHING_SCORE_DEFAULT = -1
         self.MATCHING_BB_TOL_DEFAULT = 1e-4
         self.MATCHING_BB_GROUP_TOL_DEFAULT = 1e-3
+        self.MATCHING_MASS_TOL_DEFAULT = 1e-3
+        self.MATCHING_MASS_GROUP_TOL_DEFAULT = 1e-3
+
         self.MATCHING_TEXT_SUFFIXES_DEFAULT = ('.STEP', '.STP', '.step', 'stp')
         self.MATCHING_TEXT_TOL_DEFAULT = 5e-2
 
@@ -460,11 +580,13 @@ class AssemblyManager():
         3. Second part of each sub-stage is for kwargs to method, for specs,
             e.g. 'weights = [0,1,1,0]' '''
         self.MATCHING_STRATEGY_METHODS = {'bn': self.block_by_name,
-                                              'bb': self.block_by_bb,
-                                              'mb': self.match_block}
+                                          'bb': self.block_by_bb,
+                                          'bm': self.block_by_mass,
+                                          'mb': self.match_block}
 
         # self.MATCHING_STRATEGY_STAGES_DEFAULT = [(('bb', {}), ('mb', {'weights': [0,1,1,1]}))]
-        self.MATCHING_STRATEGY_STAGES_DEFAULT = [(('bb', {}), ('mb', {'weights': [0,1,1,1], 'structure_weights': [0,1,1,1]}))]
+        # self.MATCHING_STRATEGY_STAGES_DEFAULT = [(('bm', {}), ('mb', {'weights': [1,1,1,1], 'structure_weights': [1,1,1,1]}))]
+        self.MATCHING_STRATEGY_STAGES_DEFAULT = [((None, {}), ('mb', {'weights': [1,1,1,1], 'structure_weights': [1,1,1,1]}))]
         # self.MATCHING_STRATEGY_STAGES_DEFAULT = [(('bn', {}), ('mb', {'weights': [0,1,1,1]}))]
         ''' ----------------------------- '''
 
@@ -1504,32 +1626,67 @@ class AssemblyManager():
 
 
 
+    ''' HR 20/07/22 Modified to allow choice of whether to:
+                    (a) Allow matching of sub-assemblies with parts, or
+                    (b) Only allow sub-assemblies to be matched combinatorially '''
+
     ''' HR 20/01/22
         Matching strategy set-up, to return set of matches based on series of blocking/matching stages
         Matched, unmatched and non-matches pairs passed from one stage to next
         Stages differ in terms of:  (a) Metrics used for comparison (via weight vectors)
                                     (b) Whether blocking or matching '''
-    def matching_strategy(self, id1, id2, nodes1 = None, nodes2 = None, stages = None, *args, **kwargs):
+    def matching_strategy(self, id1, id2, nodes1 = None,
+                                          nodes2 = None,
+                                          stages = None,
+                                          match_subs = False,
+                                          *args,
+                                          **kwargs):
 
         a1 = self._mgr[id1]
         a2 = self._mgr[id2]
 
-        ''' Check for/set defaults '''
-        # if not nodes1:
-        #     nodes1 = [node for node in a1.nodes]
-        # if not nodes2:
-        #     nodes2 = [node for node in a2.nodes]
+        ''' Default to all nodes if none specified '''
         if not nodes1:
-            nodes1 = a1.leaves
+            nodes1 = a1.nodes
         if not nodes2:
-            nodes2 = a2.leaves
+            nodes2 = a2.nodes
 
+        nodes1 = set(nodes1)
+        nodes2 = set(nodes2)
+
+        ''' Get leaves and sub-assemblies within node sets '''
+        leaves1 = set(a1.leaves)
+        leaves2 = set(a2.leaves)
+        leaves1 = leaves1 & nodes1
+        leaves2 = leaves2 & nodes2
+
+        subs1 = nodes1 - leaves1
+        subs2 = nodes2 - leaves2
+
+        print('leaves1:', leaves1)
+        print('leaves2:', leaves2)
+        print('subs1:', subs1)
+        print('subs2:', subs2)
+
+        # ''' Check for/set defaults '''
+        # # if not nodes1:
+        # #     nodes1 = [node for node in a1.nodes]
+        # # if not nodes2:
+        # #     nodes2 = [node for node in a2.nodes]
+        # if not nodes1:
+        #     nodes1 = leaves1
+        # if not nodes2:
+        #     nodes2 = leaves2
+
+
+
+        ''' Get stages specification '''
         if not stages:
             stages = self.MATCHING_STRATEGY_STAGES_DEFAULT
 
 
 
-        ''' 04/2/22 For pickling '''
+        ''' 04/02/22 For pickling '''
         inputs = (id1, id2, nodes1, nodes2, a1.step_filename, a2.step_filename, stages)
 
 
@@ -1557,9 +1714,18 @@ class AssemblyManager():
         mu2 = []
         # nu1 = []
         # nu2 = []
-        ''' HR 28/06/22 Very important! This means non-leaves are accounted for '''
-        tau1 = [node for node in a1.nodes]
-        tau2 = [node for node in a2.nodes]
+        # ''' HR 28/06/22 Very important! This means non-leaves are accounted for '''
+        # tau1 = [node for node in a1.nodes]
+        # tau2 = [node for node in a2.nodes]
+
+        ''' HR 20/07/22 Create nodes list for matching with option to include sub-assemblies '''
+        tau1 = leaves1
+        tau2 = leaves2
+        if match_subs:
+            tau1 = tau1 | subs1
+            tau2 = tau2 | subs2
+
+
 
         for i, stage in enumerate(stages):
 
@@ -1635,12 +1801,13 @@ class AssemblyManager():
 
         ''' HR 14/06/22 To integrate combinatorial sub-assembly matching '''
         if 'match_by_comb' in kwargs:
-            match_subs = kwargs['match_by_comb']
+            match_by_comb = kwargs['match_by_comb']
         else:
-            match_subs = self.MATCH_BY_COMB_DEFAULT
+            match_by_comb = self.MATCH_BY_COMB_DEFAULT
 
-        if match_subs:
-            matches = self.match_by_comb(id1, id2, mu)[0]
+        ''' HR 20/07/22 Added second "match_subs" condition here to prevent subs being compared both above and here'''
+        if match_by_comb and not match_subs:
+            matches = self.match_by_comb(id1, id2, mu, subs1, subs2)[0]
             print('\nSUBS MATCHES:\n', matches)
 
             '''
@@ -1664,6 +1831,8 @@ class AssemblyManager():
 
             ''' -- '''
 
+        else:
+            print('\nNot matching subs combinatorially\n')
 
 
         ''' 04/2/22 For pickling '''
@@ -1709,7 +1878,12 @@ class AssemblyManager():
         3. Cannot deal with non-product names (e.g. if default names present for "SOLID" or other shape types) or empty name fields
     Correctly groups parking trolley items if text_tol = 1e-2; this is small b/c some very long names, e.g. beginning with "Colson"
     '''
-    def block_by_name(self, id1, id2, nodes1 = None, nodes2 = None, text_tol = None, suffixes = None, field = None, field2 = None):
+    def block_by_name(self, id1, id2, nodes1 = None,
+                                      nodes2 = None,
+                                      text_tol = None,
+                                      suffixes = None,
+                                      field = None,
+                                      field2 = None):
 
         a1 = self._mgr[id1]
         a2 = self._mgr[id2]
@@ -1800,7 +1974,10 @@ class AssemblyManager():
     To group items by bounding box (BB) dimensions (specifically sum of aspect ratios)
     Groups if (a) exact match or (b) inexact match (within tolerance) according to sim score
     '''
-    def block_by_bb(self, id1, id2, nodes1 = None, nodes2 = None, bb_tol = None, group_tol = None):
+    def block_by_bb(self, id1, id2, nodes1 = None,
+                                    nodes2 = None,
+                                    bb_tol = None,
+                                    group_tol = None):
 
         ''' Check for/set defaults '''
         if not nodes1:
@@ -1880,9 +2057,103 @@ class AssemblyManager():
 
 
 
+    '''
+    HR 01/08/22
+    To group items by volume ("mass" in Open Cascade, with density = 1 by default)
+    Groups if (a) exact match or (b) inexact match (within tolerance) according to sim score
+    '''
+    def block_by_mass(self, id1, id2, nodes1 = None,
+                                      nodes2 = None,
+                                      mass_tol = None,
+                                      group_tol = None):
+
+        ''' Check for/set defaults '''
+        if not nodes1:
+            a1 = self._mgr[id1]
+            nodes1 = a1.nodes
+        if not nodes2:
+            a2 = self._mgr[id2]
+            nodes2 = a2.nodes
+
+        if not mass_tol:
+            mass_tol = self.MATCHING_MASS_TOL_DEFAULT
+        if not group_tol:
+            group_tol = self.MATCHING_MASS_GROUP_TOL_DEFAULT
+
+        groups = {}
+        grouped = False
+
+        for n1 in nodes1:
+            try:
+                mass = self.get_mass_data(id1, n1)[1]
+            except:
+                continue
+
+            if mass:
+                print('Retrieved volume, trying to group...')
+            else:
+                print('Retrieved None as volume; skipping...')
+                continue
+            if mass in groups:
+                print('Adding to existing group (exact match)')
+                groups[mass][0].append(n1)
+                continue
+            for k in groups.keys():
+                if np.isclose(k, mass, rtol = group_tol):
+                    print('Adding to existing group (inexact match)')
+                    groups[k][0].append(n1)
+                    grouped = True
+                    break
+                continue
+            if grouped:
+                grouped = False
+                continue
+            print('Creating new group')
+            groups[mass] = ([n1], [])
+
+        for n2 in nodes2:
+            try:
+                mass = self.get_mass_data(id2, n2)[1]
+            except:
+                continue
+
+            if mass:
+                print('Retrieved AR, trying to group...')
+            else:
+                print('Retrieved None as AR; skipping...')
+                continue
+            if mass in groups:
+                print('Adding to existing group (exact match)')
+                groups[mass][1].append(n2)
+                continue
+            for k in groups.keys():
+                if np.isclose(k, mass, rtol = group_tol):
+                    print('Adding to existing group (inexact match)')
+                    groups[k][1].append(n2)
+                    grouped = True
+                    break
+                continue
+            if grouped:
+                grouped = False
+                continue
+            print('Creating new group')
+            groups[mass] = ([], [n2])
+
+        return groups
+
+
+    ''' HR 03/08/22 Added option to compute mass-/volume- and distance-based similarities as alternative to BB '''
     ''' HR 10/12/21 To grab all similarity scores
         For testing integration with PartFind '''
-    def get_sims(self, id1, id2, node1, node2, field = None, weights = None, structure_weights = None, C1 = None, C2 = None, scale = None):
+    def get_sims(self, id1, id2, node1, node2, field = None,
+                                               weights = None,
+                                               structure_weights = None,
+                                               C1 = None,
+                                               C2 = None,
+                                               scale_bb = None,
+                                               by_mass = True,
+                                               *args,
+                                               **kwargs):
 
         ''' Check for/set defaults '''
         if not field:
@@ -1895,8 +2166,8 @@ class AssemblyManager():
             C1 = self.MATCHING_C1_DEFAULT
         if not C2:
             C2 = self.MATCHING_C2_DEFAULT
-        if not scale:
-            scale = self.MATCHING_BB_SCALE_DEFAULT
+        if not scale_bb:
+            scale_bb = self.MATCHING_BB_SCALE_DEFAULT
 
         # print('weights =', weights)
 
@@ -1915,12 +2186,20 @@ class AssemblyManager():
             sim_str = 0
         # print('Struct sim: ', sim_str)
 
-        ''' Get BB-based score '''
-        if weights[2] > 0:
-            sim_bb = self.similarity_bb(id1, id2, node1, node2, scale = scale)
+        ''' Get size-based score '''
+        if by_mass:
+            if weights[2] > 0:
+                print('Getting mass/distance-based score')
+                sim_size = self.similarity_mass(id1, id2, node1, node2, *args, **kwargs)
+            else:
+                sim_size = 0
         else:
-            sim_bb = 0
-        # print('BB sim: ', sim_bb)
+            if weights[2] > 0:
+                print('Getting BB-based score')
+                sim_size = self.similarity_bb(id1, id2, node1, node2, scale = scale_bb)
+            else:
+                sim_size = 0
+        # print('Size sim: ', sim_size)
 
         ''' Get shape-based score '''
         if weights[3] > 0:
@@ -1929,7 +2208,7 @@ class AssemblyManager():
             sim_sh = 0
         # print('Shape sim: ', sim_sh)
 
-        sims = (sim_name, sim_str, sim_bb, sim_sh)
+        sims = (sim_name, sim_str, sim_size, sim_sh)
         sim_total = sum([s*w for s,w in zip(sims,weights)])/sum(weights)
 
         return sim_total, sims, weights
@@ -1938,7 +2217,10 @@ class AssemblyManager():
 
     ''' HR 10/21/12 To get all local assembly structure-based similarity scores
         All copied/adapted from older "node_sim" method below '''
-    def similarity_structure(self, id1, id2, node1, node2, structure_weights = None, C1 = None, C2 = None, field = None):
+    def similarity_structure(self, id1, id2, node1, node2, structure_weights = None,
+                                                           C1 = None,
+                                                           C2 = None,
+                                                           field = None):
 
         ''' Check for/set defaults '''
         if not structure_weights:
@@ -1949,6 +2231,8 @@ class AssemblyManager():
             C2 = self.MATCHING_C2_DEFAULT
         if not field:
             field = self.MATCHING_FIELD_DEFAULT
+
+        # print('Structure weights:', structure_weights)
 
         a1 = self._mgr[id1]
         a2 = self._mgr[id2]
@@ -2043,7 +2327,8 @@ class AssemblyManager():
 
 
     ''' HR 31/01/22 To automate/abstract all BB dimensions retrieval '''
-    def get_dims(self, assembly_id, node, field = None, save_path = None):
+    def get_dims(self, assembly_id, node, field = None,
+                                          save_path = None):
 
         ''' Check for/set defaults '''
         if not field:
@@ -2064,6 +2349,7 @@ class AssemblyManager():
         # print('File:\n ', file)
 
         dimsfile = file + '.dims'
+        got_dims = False
 
         ''' Create pickled dims if not already present '''
         if not os.path.isfile(dimsfile):
@@ -2077,25 +2363,85 @@ class AssemblyManager():
             if not os.path.isdir(folder):
                 # print('Folder not present; creating...')
                 os.mkdir(folder)
-            # print('Computing and pickling AR data...\n ', arfile)
+            # print('Computing and pickling AR data...\n ', dimsfile)
             dims = get_dimensions(shape)
+            got_dims = True
             dims_writer = open(dimsfile,"wb")
             pickle.dump(dims, dims_writer)
             dims_writer.close()
 
         ''' Load pickled BB data '''
-        # print('Opening pickled BB data...\n ', arfile)
-        dims_loader = open(dimsfile,"rb")
-        dims = pickle.load(dims_loader)
+        if not got_dims:
+            # print('Opening pickled BB data...\n ', arfile)
+            dims_loader = open(dimsfile,"rb")
+            dims = pickle.load(dims_loader)
 
         return dims
+
+
+
+    ''' HR 28/07/22 To get mass and centre of mass info
+                    Some duplication with "get_dims", probably acceptable '''
+    def get_mass_data(self, assembly_id, node, field = None,
+                                               save_path = None):
+
+        ''' Check for/set defaults '''
+        if not field:
+            field = self.MATCHING_FIELD_DEFAULT
+        if not save_path:
+            save_path = self.SAVE_PATH_DEFAULT
+
+        assembly = self._mgr[assembly_id]
+        node_dict = assembly.nodes[node]
+        name = node_dict[field]
+        if not name:
+            print('No name found; returning None')
+            return None
+        folder = remove_suffixes(assembly.step_filename)
+        print('Folder, name: ', folder, name)
+
+        file = os.path.join(save_path, folder, name)
+        print('File:\n ', file)
+
+        massfile = file + '.mass'
+        got_mass = False
+
+        ''' Create pickled data if not already present '''
+        if not os.path.isfile(massfile):
+            print('Pickled volume data not found; getting volume data...')
+            # print('Retrieving shape...\n ')
+            shape = node_dict['shape_loc'][0]
+            if not shape:
+                print('Shape not found; returning None')
+                return None
+            ''' Create folder if not present '''
+            if not os.path.isdir(folder):
+                print('Folder not present; creating...')
+                os.mkdir(folder)
+            print('Computing and pickling volume data...\n ', massfile)
+            mass = get_mass_properties(shape)
+            got_mass = True
+            mass_writer = open(massfile,"wb")
+            pickle.dump(mass, mass_writer)
+            mass_writer.close()
+
+        ''' Load pickled volume data '''
+        if not got_mass:
+            print('Opening pickled volume data...\n ', massfile)
+            mass_loader = open(massfile,"rb")
+            mass = pickle.load(mass_loader)
+
+        return mass
 
 
 
     ''' HR 31/01/22
         To replace older method by abstracting more: just pass shape and retrieve ARs
         Incorporates (a) retrieval from file and/or (b) pickling to file if necessary '''
-    def similarity_bb(self, id1, id2, node1, node2, field = None, scale = None):
+    def similarity_bb(self, id1, id2, node1, node2, field = None,
+                                                    scale = None,
+                                                    *args,
+                                                    **kwargs):
 
         ''' Check for/set defaults '''
         if not field:
@@ -2133,10 +2479,57 @@ class AssemblyManager():
 
 
 
+    ''' HR 02/08/22
+        To retrieve item mass/volume and centre of mass (COM), as alternative to BB
+        Incorporates (a) retrieval from file and/or (b) pickling to file if necessary
+        Calculate similarity based on:
+            - Volume by default (centre_of_mass = False), else
+            - Centre of mass (centre_of_mass = True) '''
+    def similarity_mass(self, id1, id2, node1, node2, field = None,
+                                                      centre_of_mass = False,
+                                                      *args,
+                                                      **kwargs):
+
+        ''' Check for/set defaults '''
+        if not field:
+            field = self.MATCHING_FIELD_DEFAULT
+
+        try:
+            com1, mass1 = self.get_mass_data(id1, node1)
+        except:
+            print('Could not get mass data: exception')
+            com1, mass1 = None, None
+        try:
+            com2, mass2 = self.get_mass_data(id2, node2)
+        except:
+            print('Could not get mass data: exception')
+            com2, mass2 = None, None
+
+        ''' Calculate similarity '''
+        if not centre_of_mass:
+            if mass1 and mass2:
+                sim_mass = get_mass_score(mass1, mass2, *args, **kwargs)
+                print('Returning mass-based similarity...')
+                return sim_mass
+            else:
+                print('Exception; returning default score...')
+                return self.MATCHING_SCORE_DEFAULT
+        else:
+            if com1 and com2:
+                sim_com = get_distance_score(com1, com2, *args, **kwargs)
+                print('Returning distance-based similarity...')
+                return sim_com
+            else:
+                print('Exception; returning default score...')
+                return self.MATCHING_SCORE_DEFAULT
+
+
+
     ''' HR 31/01/22 To automate/abstract all shape-thing retrieval,
         where a shape thing is shape representation used in PartFind
         (graph in older PF versions, vector in newer versions) '''
-    def get_shape_thing(self, assembly_id, node, field = None, save_path = None):
+    def get_shape_thing(self, assembly_id, node, field = None,
+                                                 save_path = None):
 
         ''' Check for/set defaults '''
         if not field:
@@ -2250,7 +2643,15 @@ class AssemblyManager():
 
 
     ''' HR 15/12/21 General-purpose method for returning set of optimal matches from specific block '''
-    def match_block(self, id1, id2, nodes1 = None, nodes2 = None, weights = None, structure_weights = None, tol = None, default_value = None, C1 = None, C2 = None, scale = None):
+    def match_block(self, id1, id2, nodes1 = None,
+                                    nodes2 = None,
+                                    weights = None,
+                                    structure_weights = None,
+                                    tol = None,
+                                    default_value = None,
+                                    C1 = None,
+                                    C2 = None,
+                                    scale = None):
         ''' Returns:
                 - Set of matched node pairs (matches = m1 x m2)
                 - Lists of nodes in each assembly in pairs (m1, m2)
@@ -2262,9 +2663,13 @@ class AssemblyManager():
         if not nodes1:
             a1 = self._mgr[id1]
             nodes1 = [node for node in a1.nodes]
+        else:
+            nodes1 = list(nodes1)
         if not nodes2:
             a2 = self._mgr[id2]
             nodes2 = [node for node in a2.nodes]
+        else:
+            nodes2 = list(nodes2)
 
         if not weights:
             weights = self.MATCHING_WEIGHTS_DEFAULT
@@ -2288,7 +2693,7 @@ class AssemblyManager():
         np_kwargs = {'fill_value': default_value, 'dtype': 'float'}
         scores_name = np.full((len(nodes1), len(nodes2)), **np_kwargs)
         scores_str = np.full((len(nodes1), len(nodes2)), **np_kwargs)
-        scores_bb = np.full((len(nodes1), len(nodes2)), **np_kwargs)
+        scores_size = np.full((len(nodes1), len(nodes2)), **np_kwargs)
         scores_sh = np.full((len(nodes1), len(nodes2)), **np_kwargs)
 
         '''
@@ -2299,16 +2704,20 @@ class AssemblyManager():
         ''' 2. Populate with scores '''
         for i,n1 in enumerate(nodes1):
             for j,n2 in enumerate(nodes2):
-                sim_name, sim_str, sim_bb, sim_sh = self.get_sims(id1, id2, n1, n2, weights = weights, structure_weights = structure_weights, C1 = C1, C2 = C2, scale = scale)[1]
-                # print('Nodes:', n1,n2, '\nSims: ', sim_name, sim_str, sim_bb, sim_sh)
+                sim_name, sim_str, sim_size, sim_sh = self.get_sims(id1, id2, n1, n2, weights = weights,
+                                                                                      structure_weights = structure_weights,
+                                                                                      C1 = C1,
+                                                                                      C2 = C2,
+                                                                                      scale = scale)[1]
+                # print('Nodes:', n1,n2, '\nSims: ', sim_name, sim_str, sim_size, sim_sh)
                 scores_name[i,j] = sim_name
                 scores_str[i,j] = sim_str
-                scores_bb[i,j] = sim_bb
+                scores_size[i,j] = sim_size
                 scores_sh[i,j] = sim_sh
 
         ''' Multiply by weights to get aggregate scores...
             (alternative is to scale by weights within "get_sims" method, then set weights to 1 here) '''
-        scores = np.average([scores_name, scores_str, scores_bb, scores_sh], axis = 0, weights = weights)
+        scores = np.average([scores_name, scores_str, scores_size, scores_sh], axis = 0, weights = weights)
 
         ''' ...then compute indices in array of globally optimal matches via Hungarian algorithm... '''
         rows, cols, best = hungalg.get_optimal_values(scores)
@@ -2324,7 +2733,7 @@ class AssemblyManager():
         matches = [(nodes1[pair[0]], nodes2[pair[1]]) for pair in pairs]
         excluded = [(nodes1[pair[0]], nodes2[pair[1]]) for pair in pairs if scores[pair] < tol]
 
-        scores_out = (scores_name, scores_str, scores_bb, scores_sh, scores)
+        scores_out = (scores_name, scores_str, scores_size, scores_sh, scores)
 
         return matches, excluded, scores_out
 
@@ -2343,7 +2752,8 @@ class AssemblyManager():
                     - id1, id2: IDs of assemblies whose nodes are being compared
                     - leaf_matches: IDs of leaves in each assembly that have already been matched
                     - subs1, subs2: sub-assemblies in each assembly to be compared '''
-    def match_by_comb(self, id1, id2, leaf_matches, subs1 = None, subs2 = None):
+    def match_by_comb(self, id1, id2, leaf_matches, subs1 = None,
+                                                    subs2 = None):
         ass1 = self._mgr[id1]
         ass2 = self._mgr[id2]
 
@@ -2449,7 +2859,10 @@ class AssemblyManager():
 
 
         ''' Minimise white space around plot in panel '''
-        self.viewer.subplots_adjust(left = 0.01, bottom = 0.01, right = 0.99, top = 0.99)
+        self.viewer.subplots_adjust(left = 0.01,
+                                    bottom = 0.01,
+                                    right = 0.99,
+                                    top = 0.99)
 
         self.axes.axes.axis('off')
         self.axes.axes.get_xaxis().set_ticks([])
@@ -2457,7 +2870,10 @@ class AssemblyManager():
 
 
 
-    def update_colours_selected(self, active, selected = [], to_select = [], to_unselect = [], called_by = None):
+    def update_colours_selected(self, active, selected = [],
+                                              to_select = [],
+                                              to_unselect = [],
+                                              called_by = None):
 
         print('Running "update_colours_selected"')
         print('Called by: ', called_by)
@@ -2536,7 +2952,9 @@ class AssemblyManager():
 
 
 
-    def update_colours_active(self, to_activate = [], to_deactivate = [], called_by = None):
+    def update_colours_active(self, to_activate = [],
+                                    to_deactivate = [],
+                                    called_by = None):
 
         print('Running "update_colours_active"')
         print('Called by: ', called_by)
