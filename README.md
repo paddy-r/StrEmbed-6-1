@@ -20,7 +20,7 @@ Hugh Rice (HR/HPR), Tom Hazlehurst (TH) and Hau Hing Chau (HHC)
 
 January 2020-February 2023
 
-School of Geography and School of Mechanical Engineering
+School of Geography and School of Mechanical Engineering  
 University of Leeds  
 LS2 9JT
 
