@@ -105,6 +105,12 @@ from OCC.Core.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_R
 from OCC.Core.TopLoc import TopLoc_Location
 from OCC.Core.TDF import TDF_LabelSequence, TDF_Label
 
+''' HR 30/01/23 Modify OCC classes to allow deep-copying '''
+import occ_patch
+occ_patch.patch([Quantity_Color,
+                 TopLoc_Location,
+                 TDF_LabelSequence])
+
 ''' HR 28/07/22 For mass/volume computation of objects '''
 from OCC.Core.GProp import GProp_GProps
 from OCC.Core.BRepGProp import brepgprop_VolumeProperties

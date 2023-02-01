@@ -111,6 +111,10 @@ from OCC.Display import wxDisplay
 from OCC.Core.Quantity import (Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB)
 # from OCC.Core.AIS import AIS_Shaded, AIS_WireFrame
 
+''' HR 28/01/23 Hack to make it run; should only do this once in step_parse '''
+import occ_patch
+occ_patch.patch([Quantity_Color])
+
 
 
 ''' Get bitmap from "images" script, which must itself be created
