@@ -5,7 +5,8 @@
 You can download ```StrEmbed``` as an executable or as source code to run in your Python environment. A quick start guide for both options is given below.
 
 1. Download the ```StrEmbed_6_1.zip``` and ```partfindv1.zip``` files from the "Releases" page (see link on right-hand side of this page). Unpack both zip files and move the unpacked ```partfindv1``` folder to the ```StrEmbed_6_1``` folder. The latter contains all the required Python modules and an executable file ending in ```.exe```. Double-click the executable file and the ```StrEmbed-6-1``` app will run; it does not require Python to be installed on your machine.
-2. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) from the "Releases" page or via the "Code" tab at the top of this page, then import the necessary files into your Python environment. Detailed instructions for setting up your environment and creating your own executable (not recommended) are given in the user manual.
+2. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) from the "Code" tab at the top of this page, then import the necessary files into your Python environment. Detailed instructions for setting up your environment and creating your own executable (not recommended) are given in the user manual and here.
+3. Clone the repository using ```git clone https://github.com/paddy-r/StrEmbed-6-1``` and install using ```pip install -v -e .``` noting the final ```.``` is required.
 
 ___
 
@@ -17,9 +18,9 @@ Part of the Design Configuration Spaces (DCS) project hosted by the University o
 
 Hugh Rice (HR/HPR), Tom Hazlehurst (TH) and Hau Hing Chau (HHC)
 
-January 2020-August 2022
+January 2020-February 2023
 
-School of Mechanical Engineering  
+School of Geography and School of Mechanical Engineering  
 University of Leeds  
 LS2 9JT
 
@@ -44,11 +45,9 @@ There are several ways to run ```StrEmbed-6-1```, which are described below and 
 1. ```StrEmbed_6_1``` (main script)
 2. ```step_parse_6_1``` (contains class for for file and graph operations)
 
-The above incorporate code (specifically for the 3D viewer) from ```Python-OCC``` [here](https://github.com/tpaviot/pythonocc-core). ```StrEmbed-6_1``` has a large number of dependencies that must also be installed in your environment. Contact the developers of those packages if you encounter problems. Detailed instructions for setting up your Python environment using Anaconda or Miniconda are given in the user manual, which is part of this package. The instructions must be followed closely, including replacing some ```Python-OCC``` classes in your local library.
+The above incorporate code (specifically for the 3D viewer) from ```Python-OCC``` [here](https://github.com/tpaviot/pythonocc-core). ```StrEmbed-6_1``` has a large number of dependencies that must also be installed in your environment. Contact the developers of those packages if you encounter problems. Detailed instructions for setting up your Python environment using Anaconda or Miniconda are given in the user manual, which is part of this package. The instructions must be followed closely.
 
 Several STEP file examples are provided. The "Images" folder contains images necessary for building the application but not for running it.
-
-```StrEmbed-6-1``` was developed in Spyder, an IDE for Python that is packaged with the Anaconda distribution, which can be downloaded [here](https://www.anaconda.com/distribution/).
 
 ```StrEmbed-6-1``` is published under the GNU General Purpose License version 3, which is given in the LICENSE document.
 
