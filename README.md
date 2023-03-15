@@ -4,9 +4,8 @@
 
 You can download ```StrEmbed``` as an executable or as source code to run in your Python environment. A quick start guide for both options is given below.
 
-1. Download the ```StrEmbed_6_1.zip``` and ```partfindv1.zip``` files from the "Releases" page (see link on right-hand side of this page). Unpack both zip files and move the unpacked ```partfindv1``` folder to the ```StrEmbed_6_1``` folder. The latter contains all the required Python modules and an executable file ending in ```.exe```. Double-click the executable file and the ```StrEmbed-6-1``` app will run; it does not require Python to be installed on your machine.
+1. Download the ```StrEmbed_6_1.zip``` file from the "Releases" page (see link on right-hand side of this page). Unpack the zip file. It contains all the required Python modules and an executable file ending in ```.exe```. Double-click the executable file and the ```StrEmbed-6-1``` app will run; it does not require Python to be installed on your machine.
 2. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) from the "Code" tab at the top of this page, then import the necessary files into your Python environment. Detailed instructions for setting up your environment and creating your own executable (not recommended) are given in the user manual and here.
-3. Clone the repository using ```git clone https://github.com/paddy-r/StrEmbed-6-1``` and install using ```pip install -v -e .``` noting the final ```.``` is required.
 
 ___
 
