@@ -113,9 +113,18 @@ from OCC.Core.TDF import TDF_LabelSequence, TDF_Label
 
 ''' HR 16/03/23 Manually patch classes in library to allow deep-copying '''
 import occ_patch_manual
-occ_patch_manual.patch(klasses = [Quantity_Color,
-                                  TopLoc_Location,
-                                  TDF_LabelSequence])
+try:
+    print("Trying to run OCC patch...")
+    occ_patch_manual.patch(klasses = [Quantity_Color,
+                                      TopLoc_Location,
+                                      TDF_LabelSequence])
+except Exception as e:
+    print("Could not run OCC patch, exception follows...")
+    print(e)
+    print("If you encounter this error while running an executable created by Pyinstaller, do the following:")
+    print("1. Run occ_patch_manual; this will do the patch by manually modifying some OCC library files")
+    print("2. Rerun Pyinstaller, i.e. create a new executable")
+
 
 ''' HR 28/07/22 For mass/volume computation of objects '''
 from OCC.Core.GProp import GProp_GProps
