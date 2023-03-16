@@ -7,7 +7,7 @@ dependencies: # Added pip and python at top to avoid conda giving grumpy warning
   - python=3.9
   - grakel
   - pythonocc-core=7.7.0
-  - wxpython
+  - wxpython=4.1.1
   - matplotlib
   - networkx
   - nltk
