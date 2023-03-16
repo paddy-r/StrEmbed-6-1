@@ -3,3 +3,10 @@ __pycache__/*
 
 .idea/
 .idea/*
+
+# Pyinstaller folders
+build/
+build/*
+dist/
+dist/*
+*.spec
