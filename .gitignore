@@ -10,3 +10,6 @@ build/*
 dist/
 dist/*
 *.spec
+
+# Jupyter stuff
+*checkpoints
