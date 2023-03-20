@@ -95,13 +95,13 @@ except:
 
 # For STEP import
 # from step_parse_6_1 import StepParse, AssemblyManager, ShapeRenderer
-from step_parse_6_1 import StepParse, AssemblyManager
+from .step_parse import StepParse, AssemblyManager
 
 # import matplotlib.pyplot as plt
 import numpy as np
 # from scipy.special import comb
 
-import images
+from . import images
 
 import time
 

@@ -112,7 +112,7 @@ from OCC.Core.TDF import TDF_LabelSequence, TDF_Label
 #                  TDF_LabelSequence])
 
 ''' HR 16/03/23 Manually patch classes in library to allow deep-copying '''
-import occ_patch_manual
+from . import occ_patch_manual
 try:
     print("Trying to run OCC patch...")
     occ_patch_manual.patch(klasses = [Quantity_Color,
@@ -133,14 +133,14 @@ from OCC.Core.BRepGProp import brepgprop_VolumeProperties
 
 
 ''' HR 09/12/21 Adding PartCompare import to allow shape-based similarity scores '''
-from part_compare import PartCompare, load_from_step
+from .part_compare import PartCompare, load_from_step
 
 ''' HR 12/12/21 For pickling graphs of shapes for faster retrieval in similarity scoring '''
 import pickle
 ''' HR 17/03/22 For duplicating assemblies '''
 import copy
 
-import hungarian_algorithm as hungalg
+from . import hungarian_algorithm as hungalg
 
 
 
