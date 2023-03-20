@@ -1,6 +1,9 @@
 __pycache__/
 __pycache__/*
 
+*.egg-info/
+*.egg-info/*
+
 .idea/
 .idea/*
 
@@ -10,3 +13,7 @@ build/*
 dist/
 dist/*
 *.spec
+
+# Jupyter stuff
+*checkpoints
+*ipynb

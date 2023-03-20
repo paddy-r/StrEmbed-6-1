@@ -15,7 +15,7 @@ import sys
 ''' HR 01/07/22 Refactored to remove absolute paths and replace with relative paths;
                 partfindv1 folder now in common place to this script '''
 
-partfind_folder = os.path.join(os.path.dirname(__file__), 'partfindv1_frozen')
+partfind_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'partfindv1_frozen')
 sys.path.insert(0, partfind_folder)
 
 print('partfind folder:', partfind_folder)

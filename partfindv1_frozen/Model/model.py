@@ -11,8 +11,8 @@ import dgl
 
 class PartGNN(nn.Module):
     def __init__(self, args):
-        super(PartGNN,self).__init__()
-        
+        # super(PartGNN,self).__init__()
+        super().__init__()
         self.args = args
         self.setup_layers()
         self.feature_count = self.args.tensor_neurons
