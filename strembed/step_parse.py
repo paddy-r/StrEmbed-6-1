@@ -3292,7 +3292,6 @@ class StepParse(nx.DiGraph):
         # self.enforce_unary = True
 
         self.renderer = ShapeRenderer()
-        self.PARTFIND_FOLDER_DEFAULT = "C:\_Work\_DCS project\__ALL CODE\_Repos\partfind\partfind for git"
 
         self.node_dict = {}
         self.file_loaded = False

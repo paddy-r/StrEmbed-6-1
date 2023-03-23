@@ -12,27 +12,43 @@ import os
 import dgl
 import sys
 
-''' HR 01/07/22 Refactored to remove absolute paths and replace with relative paths;
-                partfindv1 folder now in common place to this script '''
 
-partfind_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'partfindv1_frozen')
-sys.path.insert(0, partfind_folder)
 
-print('partfind folder:', partfind_folder)
-cwd_old = os.getcwd()
-os.chdir(partfind_folder)
-# print('current:', os.getcwd())
+# OLD IMPORT METHOD, PRE-MARCH 2023
+# Manually navigate to folder and import piecemeal -> NOT GOOD!
+# ''' HR 01/07/22 Refactored to remove absolute paths and replace with relative paths;
+#                 partfindv1 folder now in common place to this script '''
+#
+# partfind_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'partfind')
+# # partfind_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'partfindv1_frozen')
+# sys.path.insert(0, partfind_folder)
+#
+# print('partfind folder:', partfind_folder)
+# cwd_old = os.getcwd()
+# os.chdir(partfind_folder)
+# # print('current:', os.getcwd())
+#
+# # from partfind_search_gui import networkx_to_dgl
+# from partgnn import PartGNN
+# from main import parameter_parser
+# from step_to_graph import StepToGraph
+#
+# # from utils import graphlet_pair_compare
+#
+# ''' Restore previous cwd '''
+# os.chdir(cwd_old)
+# ''' -------------------------------------------------------------- '''
 
-# from partfind_search_gui import networkx_to_dgl
-from partgnn import PartGNN
-from main import parameter_parser
-from step_to_graph import StepToGraph
 
-from utils import graphlet_pair_compare
 
-''' Restore previous cwd '''
-os.chdir(cwd_old)
-''' -------------------------------------------------------------- '''
+# NEW IMPORT METHOD, POST-MARCH 2023
+# Direct import from cloned repo
+import partfind
+from partfind.partgnn import PartGNN
+from partfind.parameter_parser import par_parser
+from partfind.step_to_graph import StepToGraph
+
+
 
 def networkx_to_dgl(A_nx):
     # need to convert it into something dgl can work with
@@ -140,7 +156,7 @@ class PartCompare():
         # os.chdir(partfind_folder)
 
         ''' 2. Initialise ML model '''
-        args = parameter_parser()
+        args = par_parser()
         # self.model = PartGNN(args, save_folder = os.path.join(partfind_folder, "./trained_models/"))
         self.model = PartGNN(args)
         self.model.load_model()
