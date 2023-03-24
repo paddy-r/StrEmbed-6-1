@@ -8,23 +8,30 @@ To get all images in folder and embed in script
 
 import os
 from time import localtime, strftime
-import glob
+# import glob
 from wx.tools.img2py import img2py
 
-im_path = os.path.join(os.getcwd(), 'Images')
-types = ['*.png', '*.bmp']
+data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+print(data_path)
+im_path = os.path.join(data_path, 'images')
+print(im_path)
+types = ['png', 'bmp']
 
-pics = []
+# pics = []
 for files in types:
     # files_grabbed.extend(glob.glob(files))
-    pics.extend(glob.glob(os.path.join(im_path, files)))
+    # pics.extend(glob.glob(os.path.join(im_path, files)))
+    pics = [os.path.join(im_path, f) for f in os.listdir(im_path) if f.split(".")[-1] in types]
+print('Found images:')
+for pic in pics:
+    print(pic)
 
-scr_path = os.path.join(os.getcwd(), 'images.py')
+scr_path = os.path.join(im_path, 'images.py')
 try:
     os.remove(scr_path)
-    print('Deleting and recreating"', scr_path, ' "')
+    print('Trying to delete existing images script...', scr_path, ' "')
 except:
-    print('Script "', os.path.split(scr_path)[-1], '" will be created')
+    print('Existing imaged script not found; script "', os.path.split(scr_path)[-1], '" will be created')
 
 # Main bit: dumping image data...
 for pic in pics:

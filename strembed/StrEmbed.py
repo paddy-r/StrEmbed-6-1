@@ -101,7 +101,7 @@ from .step_parse import StepParse, AssemblyManager
 import numpy as np
 # from scipy.special import comb
 
-from . import images
+from data.images import images
 
 import time
 
