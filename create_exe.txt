@@ -1,0 +1,8 @@
+# For all options below, "data" directory is created to house any additional data needed at runtime, currently this is just "partfind_049.pt", a trained-model data file from Partfind
+# This is loaded by PartGNN via part_compare/PartCompare, the latter containing a switch for exe/script running
+
+# Original working version -> 1.8GB executable
+# pyinstaller --clean --noconfirm StrEmbed.py --collect-binaries dgl --hiddenimport dgl.backend.pytorch --hiddenimport dgl.distributed.nn.pytorch --hiddenimport dgl.distributed.optim.pytorch --hiddenimport dgl.optim.pytorch --hidden-import grakel --collect-binaries grakel --hidden-import grakel.kernels._isomorphism.intpybliss --hidden-import partfind --add-data="C:\Users\prehr\OneDrive - University of Leeds\__WORK SYNCED\_Work\_DCS project\__ALL CODE\_Repos\StrEmbed-6-1\partfind\trained_models";./data
+
+# Onefile version, much smaller exe (500MB)
+pyinstaller --onefile --console --noconfirm StrEmbed.py --collect-binaries dgl --hiddenimport dgl.backend.pytorch --hiddenimport dgl.distributed.nn.pytorch --hiddenimport dgl.distributed.optim.pytorch --hiddenimport dgl.optim.pytorch --hidden-import grakel --collect-binaries grakel --hidden-import grakel.kernels._isomorphism.intpybliss --hidden-import partfind --add-data="C:\Users\prehr\OneDrive - University of Leeds\__WORK SYNCED\_Work\_DCS project\__ALL CODE\_Repos\StrEmbed-6-1\partfind\trained_models";./data
