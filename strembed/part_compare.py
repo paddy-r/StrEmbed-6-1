@@ -149,7 +149,7 @@ def load_from_step(step_file):
 ''' To combine all similarity calculation functionality in single class for ease '''
 class PartCompare():
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
 
         # ''' 1. Change to partfind directory '''
         # cwd_old = os.getcwd()
@@ -158,13 +158,23 @@ class PartCompare():
         ''' 2. Initialise ML model '''
         args = par_parser()
         # self.model = PartGNN(args, save_folder = os.path.join(partfind_folder, "./trained_models/"))
-        self.model = PartGNN(args)
+
+        # HR 24/03/23 Executable/script switch to avoid runtime path exceptions
+        if getattr(sys, 'frozen', False):
+            print("\n# Instantiating PartCompare in executable... #")
+            # run_path = sys.executable
+            run_path = sys._MEIPASS
+            # save_folder = os.path.join(os.path.dirname(run_path), "data") # Just testing
+            save_folder = os.path.join(run_path, "data") # Just testing
+            self.model = PartGNN(args, save_folder=save_folder)
+            print('Path to exe:', run_path)
+            print('Errors/exceptions may follow; make note of the instructions if so')
+        else:
+            print("\n# Instantiating PartCompare in normal Python script... #")
+            run_path = os.path.abspath(__file__)
+            print('Path to script:', run_path)
+            self.model = PartGNN(args)
         self.model.load_model()
 
         # ''' 3. Change back to previous directory '''
         # os.chdir(cwd_old)
-
-
-
-
-

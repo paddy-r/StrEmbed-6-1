@@ -4,9 +4,9 @@
 
 You can download ```StrEmbed``` as an executable or as source code to run in your Python environment. A quick start guide for both options is given below.
 
-1. Download the ```StrEmbed_6_1.zip``` file from the "Releases" page (see link on right-hand side of this page). Unpack the zip file. It contains all the required Python modules and an executable file ending in ```.exe```. Double-click the executable file and the ```StrEmbed-6-1``` app will run; it does not require Python to be installed on your machine.
-2. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) from the "Code" tab at the top of this page, then import the necessary files into your Python environment. Detailed instructions for setting up your environment and creating your own executable (not recommended) are given in the user manual and here.
-3. Clone the repository using ```git```. Use the following command: ```git clone https://github.com/paddy-r/StrEmbed-6-1```.
+1. (Recommended) Download the ```StrEmbed.exe``` executable file from the "Releases" page (see link on right-hand side of this page). Double-click the file and the ```StrEmbed``` app will run; it does not require Python or anything else to be installed on your machine.
+2. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) from the "Code" tab at the top of this page, then import the necessary files into your Python environment. Detailed instructions for setting up your environment and creating your own executable (not recommended) are given in the user manual and here. For this option and the one below, you must also install ```PartFind```, a dependency of ```StrEmbed```, with this command: ```pip install git+https://github.com/thazlehurst/partfind@strembed_legacy```
+3. Alternatively, clone the repository using ```git```. Use the following command: ```git clone https://github.com/paddy-r/StrEmbed-6-1```.
 
 ___
 
@@ -28,7 +28,7 @@ All communication, including bug/issues reports, to: h.p.rice@leeds.ac.uk
 
 ___
 
-<i> ```StrEmbed-6-1``` is a graphical user interface for visualisation and manipulation of part-whole relationships in assemblies of parts, and is written in Python. The user can read files in the [STEP format](https://en.wikipedia.org/wiki/ISO_10303-21), which is a common data exchange format containing both assembly information (i.e. part-whole information) and shape data. Functionality is based on [```StrEmbed-4```](https://github.com/hhchau/StrEmbed-4) (and earlier versions) by Hau Hing Chau, written in Perl.</i>  
+<i> ```StrEmbed``` is a graphical user interface for visualisation and manipulation of part-whole relationships in assemblies of parts, and is written in Python. The user can read files in the [STEP format](https://en.wikipedia.org/wiki/ISO_10303-21), which is a common data exchange format containing both assembly information (i.e. part-whole information) and shape data. Functionality is based on [```StrEmbed-4```](https://github.com/hhchau/StrEmbed-4) (and earlier versions) by Hau Hing Chau, written in Perl.</i>  
 
 <b>This research is supported by the UK Engineering and Physical Sciences Research Council (EPSRC) under grant number EP/S016406/1.</b>
 
@@ -36,20 +36,24 @@ ___
 
 ## Full guide
 
-There are several ways to run ```StrEmbed-6-1```, which are described below and in more detail in the user manual. The simplest is to download the latest release, which contains all the Python scripts and an executable file. To run ```StrEmbed-6_1``` you can then do one of the following:
+There are several ways to run ```StrEmbed```, which are described below and in more detail in the user manual. The simplest is to download the latest release, which contains all the Python scripts and an executable file. To run ```StrEmbed``` you can then do one of the following:
 
-(1) Run as an executable. This does not require you to have Python or any IDE installed. Navigate to the "Releases" page using the link on the right of this page and download the ```StrEmbed_6_1.zip```file, which contains the executable (ending ```.exe```); double-click it (Windows only) and the app will run. A console window will also open for debugging purposes. If you encounter any problems, please make a record of the output and contact the developers if you require help.
+(1) Run as an executable. This does not require you to have Python or any IDE installed. Navigate to the "Releases" page using the link on the right of this page and download the ```StrEmbed.exe```file; double-click it (Windows only) and the app will run. A console window will also open for debugging purposes. If you encounter any problems, please make a record of the output and contact the developers if you require help. You can capture the output in a text file with the following command (Windows only):
 
-(2) Run as a Python script in your own environment. Two main scripts are required:
+```
+StrEmbed.exe > log.txt & log.txt
+```
 
-1. ```StrEmbed_6_1``` (main script)
-2. ```step_parse_6_1``` (contains class for for file and graph operations)
+(2) Run as a Python script in your own environment. Two main scripts can be used:
 
-The above incorporate code (specifically for the 3D viewer) from ```Python-OCC``` [here](https://github.com/tpaviot/pythonocc-core). ```StrEmbed-6_1``` has a large number of dependencies that must also be installed in your environment. Contact the developers of those packages if you encounter problems. Detailed instructions for setting up your Python environment using Anaconda or Miniconda are given in the user manual, which is part of this package. The instructions must be followed closely.
+1. ```StrEmbed``` (main script, runs the app)
+2. ```step_parse``` (contains all non-app functionality for file and graph operations)
+
+The above incorporate code (specifically for the 3D viewer) from ```Python-OCC``` [here](https://github.com/tpaviot/pythonocc-core). ```StrEmbed``` has a large number of dependencies that must also be installed in your environment. Contact the developers of those packages if you encounter problems. Detailed instructions for setting up your Python environment using Anaconda or Miniconda are given in the user manual, which is part of this package. The instructions must be followed closely.
 
 Several STEP file examples are provided. The "Images" folder contains images necessary for building the application but not for running it.
 
-```StrEmbed-6-1``` is published under the GNU General Purpose License version 3, which is given in the LICENSE document.
+```StrEmbed``` is published under the GNU General Purpose License version 3, which is given in the LICENSE document.
 
 ## Contact and issue reporting
 
