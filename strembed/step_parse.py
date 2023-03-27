@@ -111,19 +111,20 @@ from OCC.Core.TDF import TDF_LabelSequence, TDF_Label
 #                  TopLoc_Location,
 #                  TDF_LabelSequence])
 
-''' HR 16/03/23 Manually patch classes in library to allow deep-copying '''
-import occ_patch_manual
-try:
-    print("Trying to run OCC patch...")
-    occ_patch_manual.patch(klasses = [Quantity_Color,
-                                      TopLoc_Location,
-                                      TDF_LabelSequence])
-except Exception as e:
-    print("Could not run OCC patch, exception follows...")
-    print(e)
-    print("If you encounter this error while running an executable created by Pyinstaller, do the following:")
-    print("1. Run occ_patch_manual; this will do the patch by manually modifying some OCC library files")
-    print("2. Rerun Pyinstaller, i.e. create a new executable")
+''' HR 24/03/23 Moved OCC patch to main.py '''
+# ''' HR 16/03/23 Manually patch classes in library to allow deep-copying '''
+# from . import occ_patch_manual
+# try:
+#     print("Trying to run OCC patch...")
+#     occ_patch_manual.patch(klasses = [Quantity_Color,
+#                                       TopLoc_Location,
+#                                       TDF_LabelSequence])
+# except Exception as e:
+#     print("Could not run OCC patch, exception follows...")
+#     print(e)
+#     print("If you encounter this error while running an executable created by Pyinstaller, do the following:")
+#     print("1. Run occ_patch_manual; this will do the patch by manually modifying some OCC library files")
+#     print("2. Rerun Pyinstaller, i.e. create a new executable")
 
 
 ''' HR 28/07/22 For mass/volume computation of objects '''
@@ -133,14 +134,14 @@ from OCC.Core.BRepGProp import brepgprop_VolumeProperties
 
 
 ''' HR 09/12/21 Adding PartCompare import to allow shape-based similarity scores '''
-from part_compare import PartCompare, load_from_step
+from .part_compare import PartCompare, load_from_step
 
 ''' HR 12/12/21 For pickling graphs of shapes for faster retrieval in similarity scoring '''
 import pickle
 ''' HR 17/03/22 For duplicating assemblies '''
 import copy
 
-import hungarian_algorithm as hungalg
+from . import hungarian_algorithm as hungalg
 
 
 
@@ -561,7 +562,14 @@ class ShapeRenderer(OCCViewer.Viewer3d, PicklableSWIG):
 ''' To contain lattice structure that manages/contains all assemblies '''
 class AssemblyManager():
 
-    def __init__(self, viewer = None, axes = None, ic = None, dc = None, sc = None, lc = None, lattice_plot_mode = True, *args, **kwargs):
+    def __init__(self,
+                 viewer = None,
+                 axes = None,
+                 ic = None,
+                 dc = None,
+                 sc = None,
+                 lc = None,
+                 lattice_plot_mode = True):
         ''' Dict of all assembly IDs to SP instances '''
         self._mgr = {}
         ''' List of IDs of all assemblies in lattice '''
@@ -3292,7 +3300,6 @@ class StepParse(nx.DiGraph):
         # self.enforce_unary = True
 
         self.renderer = ShapeRenderer()
-        self.PARTFIND_FOLDER_DEFAULT = "C:\_Work\_DCS project\__ALL CODE\_Repos\partfind\partfind for git"
 
         self.node_dict = {}
         self.file_loaded = False

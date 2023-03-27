@@ -1,5 +1,13 @@
 __pycache__/
 __pycache__/*
+*/__pycache__/
+*/__pycache__/*
+*/*/__pycache__/
+*/*/__pycache__/*
+
+
+*.egg-info/
+*.egg-info/*
 
 .idea/
 .idea/*
@@ -9,4 +17,13 @@ build/
 build/*
 dist/
 dist/*
+dist*/
+dist*/*
 *.spec
+
+# Jupyter stuff
+*checkpoints
+*ipynb
+
+# Images script
+data/images/images.py
