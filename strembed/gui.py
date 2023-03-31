@@ -52,6 +52,10 @@ and bug fixes:
     1. GUI changes being executed multiple times
     2. Node positioning error after change in graph structure '''
 
+'''
+HR 31/03/23 Onwards, refactoring for StrEmbed-6-1 version 2 (see Github releases)
+            Aim is to overhaul for producing results for BoM recon paper
+'''
 
 
 # WX stuff

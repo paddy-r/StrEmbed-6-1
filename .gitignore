@@ -26,4 +26,7 @@ dist*/*
 *ipynb
 
 # Images script
-data/images/images.py
+#data/images/images.py
+
+# Non-repo STEP files
+data/_For\ BoM\ recon\ paper"
