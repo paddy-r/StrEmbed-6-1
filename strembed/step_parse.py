@@ -33,6 +33,10 @@ Version 6.1
 Copy of 5.7, to draw line under version 5
 Version 6 to include major upgrade of BoM reconciliation functionality '''
 
+'''
+HR 31/03/23 Onwards, refactoring for StrEmbed-6-1 version 2 (see Github releases)
+            Aim is to overhaul for producing results for BoM recon paper
+'''
 
 
 # # Regular expression module
@@ -132,7 +136,6 @@ from OCC.Core.GProp import GProp_GProps
 from OCC.Core.BRepGProp import brepgprop_VolumeProperties
 
 
-
 ''' HR 09/12/21 Adding PartCompare import to allow shape-based similarity scores '''
 from .part_compare import PartCompare, load_from_step
 
@@ -142,7 +145,6 @@ import pickle
 import copy
 
 from . import hungarian_algorithm as hungalg
-
 
 
 ''' HR 08/04/22 NOT WORKING; HACKED CLASS DEFINITIONS IN SOURCE FILES '''
@@ -186,13 +188,11 @@ from . import hungarian_algorithm as hungalg
 #     return repr_string
 
 
-
 def remove_suffixes(_str, suffixes = ('.stp', '.step', '.STP', '.STEP')):
     ''' "endswith" accept tuple etc.'''
     while _str.endswith(suffixes):
         _str = os.path.splitext(_str)[0]
     return _str
-
 
 
 ''' HR 26/04/21
@@ -247,7 +247,6 @@ def step_search(file, keywords = None, exclusions = None, any_mode = True):
     return results, keyword_dict
 
 
-
 def get_dimensions(shape, tol = 1e-6, use_mesh = True, get_centre = False):
     ''' To get sorted list of aspect ratios of shape from bounding box
         Adapted from PythonOCC here:
@@ -295,7 +294,6 @@ def get_dimensions(shape, tol = 1e-6, use_mesh = True, get_centre = False):
     return dim, ar
 
 
-
 ''' Get geometric absolute value
     i.e. min of a/b and b/a '''
 def geo_abs(a,b):
@@ -303,7 +301,6 @@ def geo_abs(a,b):
         return a/b
     else:
         return b/a
-
 
 
 def get_bb_score(ar1, ar2, phi = 1):
@@ -315,7 +312,6 @@ def get_bb_score(ar1, ar2, phi = 1):
 
     # print('Score: ', score)
     return score
-
 
 
 ''' HR 28/07/22 To get mass/volume properties of object,
@@ -342,7 +338,6 @@ def get_mass_properties(shape):
     return com, mass
 
 
-
 ''' HR 03/08/22 To get similarity score based on two shape masses/volumes
                 Options are:
                     (a) Divide by sum (default)
@@ -360,7 +355,6 @@ def get_mass_score(mass1, mass2, *args, **kwargs):
     else:
         score = 1 - abs(mass1 - mass2)/(mass1 + mass2)
     return score
-
 
 
 ''' HR 03/08/22 To get similarity score based on Euclidean distance '''
@@ -388,7 +382,6 @@ def get_distance_score(pos1, pos2, *args, **kwargs):
     return score
 
 
-
 ''' HR 01/08/22 To get distance from n-dimensional coordinates
                 Takes list of any length '''
 def distance_magnitude(coords, *args, **kwargs):
@@ -404,7 +397,6 @@ def distance_magnitude(coords, *args, **kwargs):
     result = sum([el**n for el in coords])**(1.0/n)
 
     return result
-
 
 
 ''' HR 01/08/22 To get Euclidean distance between two n-dimensional vectors '''
@@ -425,7 +417,6 @@ def euclidean_distance(vector1, vector2, *args, **kwargs):
     result = sum([(el[1]-el[0])**n for el in vectors])**(1.0/n)
 
     return result
-
 
 
 '''
@@ -459,7 +450,6 @@ def get_matching_success(n_a, n_b, M, mu):
     S = TN/(TN + FP)
 
     return P,R,S
-
 
 
 ''' HR 06/04/22 UPDATE ON DEEPCOPY OF SWIG OBJECTS, SEE PYTHONOCC ISSUE HERE: https://github.com/tpaviot/pythonocc-core/issues/1097
@@ -502,7 +492,7 @@ class PicklableSWIG:
         return {'args': self.args}
 
 
-
+''' HR summer 2022, the below does not work '''
 # ''' All classes that need to be copy-enabled '''
 # class TopLoc_LocationSWIG(TopLoc_Location, PicklableSWIG):
 #     def __init__(self, *args):
@@ -530,7 +520,6 @@ class PicklableSWIG:
 # #         TopoDS_Solid.__init__(self)
 
 
-
 """
 HR 26/08/2020
 ShapeRenderer adapted from pythonocc script "wxDisplay"
@@ -554,9 +543,6 @@ class ShapeRenderer(OCCViewer.Viewer3d, PicklableSWIG):
         # self.display_triedron()
         self.SetRaytracingMode(depth = 5)
         self._rendered = False
-
-
-
 
 
 ''' To contain lattice structure that manages/contains all assemblies '''
@@ -678,7 +664,6 @@ class AssemblyManager():
             self.lc = lc
 
 
-
     def get_new_assembly_name(self, new_id):
         name = 'Assembly ' + str(new_id)
         ''' Check name doesn't exist; create new name by increment if so '''
@@ -692,14 +677,12 @@ class AssemblyManager():
         return name
 
 
-
     @property
     def new_assembly_id(self):
         if not hasattr(self, "assembly_id_counter"):
             self.assembly_id_counter = 0
         self.assembly_id_counter += 1
         return self.assembly_id_counter
-
 
 
     # @property
@@ -709,7 +692,6 @@ class AssemblyManager():
     #         names = [el._assembly_name for el in self._mgr]
     #         self._assembly_name = name
     #     return self._assembly_name
-
 
 
     ''' Create new assembly (StepParse), with auto name and ID generation '''
@@ -730,7 +712,6 @@ class AssemblyManager():
             assembly.enforce_binary = self.ENFORCE_BINARY_DEFAULT
 
         return assembly_id, assembly
-
 
 
     ''' HR 08/04/22 To create new assembly based on existing one;
@@ -774,7 +755,6 @@ class AssemblyManager():
         return id_new, ass_new
 
 
-
     ''' HR 11/04/22 To import pickled StepParse file '''
     def import_assembly(self, filename):
         print('Trying to import assembly from file: ', filename)
@@ -802,7 +782,6 @@ class AssemblyManager():
         return new_id, ass_imported
 
 
-
     ''' HR 12/04/22 To export StepParse via pickle '''
     def save_assembly(self, filename, ID):
         print('Trying to export assembly ', ID, 'to file: ', filename)
@@ -824,7 +803,6 @@ class AssemblyManager():
             return False
 
 
-
     ''' Get lattice node corresponding to node in given assembly
         Return lattice node if present, otherwise None '''
     def get_master_node(self, assembly_id, item):
@@ -836,7 +814,6 @@ class AssemblyManager():
         return None
 
 
-
     ''' ----------------------------------------------------------------------
         ----------------------------------------------------------------------
         HR JAN 2021 ASSEMBLY OPERATIONS TO BE REFERRED TO IN GUI
@@ -846,7 +823,6 @@ class AssemblyManager():
             all interactions in GUI should be with assembly manager here
         - COMPLETE FEB 2021! I am a neat guy!
     '''
-
 
 
     def add_edge_in_lattice(self, _id, u, v):
@@ -872,8 +848,6 @@ class AssemblyManager():
         self._lattice.edges[(um,vm)].update({_id:(u,v)})
 
 
-
-
     def remove_edge_in_lattice(self, _id, u, v):
 
         '''
@@ -895,7 +869,6 @@ class AssemblyManager():
         else:
             print('Edge dict has len > 1; removing edge dict entry for assembly')
             self._lattice.edges[(um,vm)].pop(_id)
-
 
 
     def add_node_in_lattice(self, _id, parent, disaggregate = False, **attr):
@@ -931,7 +904,6 @@ class AssemblyManager():
         return node, nodem
 
 
-
     ''' HR 14/06/22 Superceded for now by "remove_redundants_in_lattice"
                     which should be called after every operation
                     that might produce redundant nodes;
@@ -963,7 +935,6 @@ class AssemblyManager():
     #     ''' Finally, remove redundant node '''
     #     print('  Removing node', node, ' in lattice in "enforce_binary"')
     #     self.remove_node_in_lattice(_id, node)
-
 
 
     def remove_node_in_lattice(self, _id, node):
@@ -1019,7 +990,6 @@ class AssemblyManager():
         #     self.enforce_binary(_id, parent)
 
 
-
     def move_node_in_lattice(self, _id, node, parent, veto_binary = False):
 
         ass = self._mgr[_id]
@@ -1044,7 +1014,6 @@ class AssemblyManager():
         #     self.enforce_binary(_id, old_parent)
 
         return True
-
 
 
     def assemble_in_lattice(self, _id, nodes, **attr):
@@ -1085,7 +1054,6 @@ class AssemblyManager():
         return new_sub
 
 
-
     def flatten_in_lattice(self, _id, node):
 
         ass = self._mgr[_id]
@@ -1120,7 +1088,6 @@ class AssemblyManager():
         return True
 
 
-
     def disaggregate_in_lattice(self, _id, node, num_disagg = None, **attr):
 
         if not num_disagg:
@@ -1146,7 +1113,6 @@ class AssemblyManager():
             new_nodes.append(new_node)
 
         return new_nodes
-
 
 
     def aggregate_in_lattice(self, _id, node):
@@ -1177,7 +1143,6 @@ class AssemblyManager():
                 print('Could not delete node')
 
         return removed_nodes
-
 
 
     ''' HR 13/06/22 To remove redundants from assembly; avoids problems
@@ -1269,153 +1234,10 @@ class AssemblyManager():
             latt_edge_dict = self._lattice.edges[latt_edge][_id] = edge
 
 
-
     ''' ----------------------------------------------------------------------
         ADD TO/REMOVE FROM LATTICE
         ----------------------------------------------------------------------
     '''
-
-
-
-    # ''' HR 14/03/22 New version to use new reconciliation code,
-    #                 including PartFind shape comparison (optionally) '''
-    # def AddToLattice(self, _id, dominant = None, *args, **kwargs):
-
-    #     '''
-    #     HR 13/04/22 Refactored validation/typing section here
-    #                 to account for "_assemblies_in_lattice" list;
-    #                 decision required if either:
-    #                     (1) Only ID in _mgr is "_id", or
-    #                     (2) "dominant" not in lattice
-    #     '''
-
-
-
-    #     ''' If first assembly being added, just map nodes and edges directly
-    #         No need to do any similarity calculations '''
-    #     def simple_add(_id):
-
-    #         print('"Simple add": Adding first assembly to lattice')
-    #         a1 = self._mgr[_id]
-
-    #         for node in a1.nodes:
-    #             new_node = self._lattice.new_node_id
-    #             self._lattice.add_node(new_node, populate = False)
-    #             self._lattice.nodes[new_node].update({_id:node})
-
-    #         ''' Nodes must exist as edges require "get_master_node" '''
-    #         for n1,n2 in a1.edges:
-    #             u = self.get_master_node(_id, n1)
-    #             v = self.get_master_node(_id, n2)
-    #             self._lattice.add_edge(u,v)
-    #             self._lattice.edges[(u,v)].update({_id:(n1,n2)})
-
-    #         ''' HR 13/04/22 Added this list everywhere to track IDs present in lattice '''
-    #         self._assemblies_in_lattice.append(_id)
-
-
-
-    #     if _id not in self._mgr:
-    #         print('ID: ', _id)
-    #         print('Assembly not in manager; returning False')
-    #         return
-
-    #     if _id in self._assemblies_in_lattice:
-    #         print('Assembly', _id, 'already in lattice; returning False')
-    #         return
-
-    #     if not dominant:
-    #         try:
-    #             ''' Get first ID (numerically) from lattice list '''
-    #             dominant = sorted([el for el in self._assemblies_in_lattice])[0]
-    #             print('No ID specified for comparison; defaulting to first in lattice list')
-    #         except:
-    #             print('No IDs in lattice list; adding assembly')
-    #             simple_add(_id)
-    #             # self._assemblies_in_lattice.append(_id)
-    #             return
-
-    #     # if (not dominant) or (dominant not in self._assemblies_in_lattice):
-    #     #     print('Dominant assembly not specified or not found in manager; defaulting to assembly with lowest ID')
-    #     #     idlist = sorted([el for el in self._mgr])
-    #     #     # idlist.remove(_id)
-    #     #     dominant = idlist[0]
-
-
-
-    #     ''' Assemblies to be compared established by this point '''
-    #     print('ID of dominant assembly in manager: ', dominant)
-    #     print('ID of assembly to be added:         ', _id)
-
-    #     id1 = dominant
-    #     id2 = _id
-
-    #     a1 = self._mgr[id1]
-    #     a2 = self._mgr[id2]
-    #     # print('a1 nodes: ', a1.nodes)
-    #     # print('a2 nodes: ', a2.nodes)
-
-
-
-    #     '''
-    #     MAIN SECTION:
-    #         1. DO NODE COMPARISON AND COMPUTE PAIR-WISE SIMILARITIES
-    #         2. GET NODE MAP BETWEEN DOMINANT AND NEW ASSEMBLIES
-    #         3. ADD NEW ASSEMBLY TO LATTICE GRAPH
-    #     '''
-    #     results = self.matching_strategy(id1, id2, *args, **kwargs)[1]
-    #     matches = dict(results[0])
-    #     tau1, tau2 = results[3], results[4]
-
-    #     # print('results[1]: ', results)
-    #     # print('matches: ', matches)
-    #     # print('tau1: ', tau1)
-    #     # print('tau2: ', tau2)
-
-    #     ''' Show results '''
-    #     print('Mapping results: ')
-    #     f = 'screen_name'
-    #     for k,v in matches.items():
-    #         print('a1 node: ', k, a1.nodes[k][f], 'a2 node: ', v, a2.nodes[v][f])
-
-    #     '''
-    #         NODES
-    #     '''
-
-    #     ''' Append to existing master node dict if already present... '''
-    #     for n1,n2 in matches.items():
-    #         ''' Returns None if not present... '''
-    #         master_node = self.get_master_node(id1, n1)
-    #         ''' ...but if already present, add... '''
-    #         if master_node:
-    #             self._lattice.nodes[master_node].update({id2:n2})
-
-    #     ''' ...else create new master node entry '''
-    #     for n2 in tau2:
-    #         node = self._lattice.new_node_id
-    #         self._lattice.add_node(node, populate = False)
-    #         self._lattice.nodes[node].update({id2:n2})
-
-
-    #     '''
-    #         EDGES
-    #     '''
-
-    #     for n1,n2 in a2.edges:
-    #         m1 = self.get_master_node(id2, n1)
-    #         m2 = self.get_master_node(id2, n2)
-    #         if m1 and m2:
-    #             ''' Create master edge if not present '''
-    #             if (m1,m2) not in self._lattice.edges:
-    #                 self._lattice.add_edge(m1,m2)
-    #             ''' Lastly, create new entry '''
-    #             self._lattice.edges[(m1,m2)].update({id2:(n1,n2)})
-
-    #     ''' Add to lattice list '''
-    #     self._assemblies_in_lattice.append(id2)
-
-    #     return matches, id1, id2
-
 
 
     ''' HR 05/07/22 To split into separate method from AddToLattice for ease;
@@ -1452,7 +1274,6 @@ class AssemblyManager():
         print('Done AddToLatticeSimple for assembly ID', id1)
 
 
-
     ''' HR 05/07/22 Refactored to pass matches to method
                     ultimately this is to allow user choice before adding to lattice
                     - id1: assembly to compare to
@@ -1470,7 +1291,6 @@ class AssemblyManager():
         if id2 in self._assemblies_in_lattice:
             print('Assembly', id2, 'already in lattice; returning')
             return
-
 
 
         ''' Assemblies to be compared established by this point '''
@@ -1513,7 +1333,6 @@ class AssemblyManager():
             self._lattice.add_node(node, populate = False)
             self._lattice.nodes[node].update({id2:n2})
 
-
         '''
             EDGES
         '''
@@ -1533,7 +1352,6 @@ class AssemblyManager():
         print('Done AddToLattice for assembly ID', id2)
 
         return matches, id1, id2
-
 
 
     def RemoveFromLattice(self, _id):
@@ -1606,7 +1424,6 @@ class AssemblyManager():
         return True
 
 
-
     ''' HR 18/03/22 To duplicate existing assembly in lattice
                     - id1 = ID of existing (old) assembly being duplicated
                     - id2 = ID of duplicate (new) assembly being added '''
@@ -1645,14 +1462,10 @@ class AssemblyManager():
         self._mgr.pop(_id)
 
 
-
-
-
     ''' ---------------------------------------------------------
         ALL NEWER RECONCILIATION CODE
         JAN 2022 ONWARDS
         --------------------------------------------------------- '''
-
 
 
     ''' HR 20/07/22 Modified to allow choice of whether to:
@@ -1708,11 +1521,9 @@ class AssemblyManager():
         #     nodes2 = leaves2
 
 
-
         ''' Get stages specification '''
         if not stages:
             stages = self.MATCHING_STRATEGY_STAGES_DEFAULT
-
 
 
         ''' 04/02/22 For pickling '''
@@ -1753,7 +1564,6 @@ class AssemblyManager():
         if match_subs:
             tau1 = tau1 | subs1
             tau2 = tau2 | subs2
-
 
 
         for i, stage in enumerate(stages):
@@ -1827,7 +1637,6 @@ class AssemblyManager():
         print('\nLEAF MATCHES:\n', mu)
 
 
-
         ''' HR 14/06/22 To integrate combinatorial sub-assembly matching '''
         if 'match_by_comb' in kwargs:
             match_by_comb = kwargs['match_by_comb']
@@ -1871,7 +1680,6 @@ class AssemblyManager():
         return inputs, outputs
 
 
-
     # ''' HR 19/01/22
     #     To  (1) grab existing matches from lattice nodes for specified assemblies, or
     #         (2) grab notional matches from one BoM, for when it is to be duplicated,
@@ -1895,7 +1703,6 @@ class AssemblyManager():
     #                 matches[latt_node] = (node1,node2)
     #                 print('Added notional pair:', node1, node2)
     #     return matches
-
 
 
     '''
@@ -1997,7 +1804,6 @@ class AssemblyManager():
         return groups
 
 
-
     '''
     HR 25/01/22
     To group items by bounding box (BB) dimensions (specifically sum of aspect ratios)
@@ -2083,7 +1889,6 @@ class AssemblyManager():
             groups[bb_sum] = ([], [n2])
 
         return groups
-
 
 
     '''
@@ -2243,7 +2048,6 @@ class AssemblyManager():
         return sim_total, sims, weights
 
 
-
     ''' HR 10/21/12 To get all local assembly structure-based similarity scores
         All copied/adapted from older "node_sim" method below '''
     def similarity_structure(self, id1, id2, node1, node2, structure_weights = None,
@@ -2288,7 +2092,6 @@ class AssemblyManager():
             sim_parent = 0
 
 
-
         ''' Get number of children... '''
         if structure_weights[1] > 0:
             nc1 = len([el for el in a1.successors(node1)])
@@ -2304,7 +2107,6 @@ class AssemblyManager():
 
         else:
             sim_children = 0
-
 
 
         ''' Get number of siblings... '''
@@ -2327,7 +2129,6 @@ class AssemblyManager():
             sim_sibs = 0
 
 
-
         ''' Get tree-depth similarity '''
         if structure_weights[3] > 0:
             root1 = a1.get_root()
@@ -2347,12 +2148,11 @@ class AssemblyManager():
             sim_depth = 0
 
 
-
         sims = (sim_parent, sim_children, sim_sibs, sim_depth)
         sim_str = sum([s*w for s,w in zip(sims,structure_weights)])/sum(structure_weights)
 
+        # print("Returning structure sims:", sim_str, sims, structure_weights)
         return sim_str, sims, structure_weights
-
 
 
     ''' HR 31/01/22 To automate/abstract all BB dimensions retrieval '''
@@ -2408,7 +2208,6 @@ class AssemblyManager():
         return dims
 
 
-
     ''' HR 28/07/22 To get mass and centre of mass info
                     Some duplication with "get_dims", probably acceptable '''
     def get_mass_data(self, assembly_id, node, field = None,
@@ -2427,7 +2226,7 @@ class AssemblyManager():
             print('No name found; returning None')
             return None
         folder = remove_suffixes(assembly.step_filename)
-        print('Folder, name: ', folder, name)
+        # print('Folder, name: ', folder, name)
 
         file = os.path.join(save_path, folder, name)
         print('File:\n ', file)
@@ -2461,7 +2260,6 @@ class AssemblyManager():
             mass = pickle.load(mass_loader)
 
         return mass
-
 
 
     ''' HR 31/01/22
@@ -2507,7 +2305,6 @@ class AssemblyManager():
             return self.MATCHING_SCORE_DEFAULT
 
 
-
     ''' HR 02/08/22
         To retrieve item mass/volume and centre of mass (COM), as alternative to BB
         Incorporates (a) retrieval from file and/or (b) pickling to file if necessary
@@ -2538,7 +2335,7 @@ class AssemblyManager():
         if not centre_of_mass:
             if mass1 and mass2:
                 sim_mass = get_mass_score(mass1, mass2, *args, **kwargs)
-                print('Returning mass-based similarity...')
+                print('Returning mass-based similarity...', sim_mass)
                 return sim_mass
             else:
                 print('Exception; returning default score...')
@@ -2546,12 +2343,11 @@ class AssemblyManager():
         else:
             if com1 and com2:
                 sim_com = get_distance_score(com1, com2, *args, **kwargs)
-                print('Returning distance-based similarity...')
+                print('Returning distance-based similarity...', sim_com)
                 return sim_com
             else:
                 print('Exception; returning default score...')
                 return self.MATCHING_SCORE_DEFAULT
-
 
 
     ''' HR 31/01/22 To automate/abstract all shape-thing retrieval,
@@ -2615,7 +2411,6 @@ class AssemblyManager():
         return thing
 
 
-
     def similarity_shape(self, id1, id2, node1, node2, field = None):
 
         ''' Check for/set defaults '''
@@ -2637,10 +2432,10 @@ class AssemblyManager():
         ''' Calculate similarity '''
         if thing1 and thing2:
             sim_sh = self.pc.model.test_pair(thing1, thing2)
+            # print("Similarity score:", sim_sh)
             return sim_sh
         else:
             return self.MATCHING_SCORE_DEFAULT
-
 
 
     ''' HR June 21 Must refactor this, moved from StepParse class method '''
@@ -2667,8 +2462,9 @@ class AssemblyManager():
         lev_dist = nltk.edit_distance(str1, str2)
         sim = 1 - lev_dist/max(len(str1), len(str2))
 
+        # print("String similarity stuff:", str1, str2)
+        # print(lev_dist, sim)
         return lev_dist, sim
-
 
 
     ''' HR 15/12/21 General-purpose method for returning set of optimal matches from specific block '''
@@ -2767,7 +2563,6 @@ class AssemblyManager():
         return matches, excluded, scores_out
 
 
-
     ''' HR 15/06/22 TO DO
                     Rewrite to match sub-assemblies via lattice,
                     rather than through assembly 1, as otherwise may miss some,
@@ -2830,12 +2625,10 @@ class AssemblyManager():
         return subs_matches, subs1, subs2
 
 
-
     ''' ----------------------------------------------------------------------
         ALL GRAPH/LATTICE PLOT METHODS HERE
         ----------------------------------------------------------------------
     '''
-
 
 
     ''' Create all plot objects from scratch '''
@@ -2896,7 +2689,6 @@ class AssemblyManager():
         self.axes.axes.axis('off')
         self.axes.axes.get_xaxis().set_ticks([])
         self.axes.axes.get_yaxis().set_ticks([])
-
 
 
     def update_colours_selected(self, active, selected = [],
@@ -2971,14 +2763,12 @@ class AssemblyManager():
             latt.edge_dict[(leaf,None)].set_color(dc)
 
 
-
         ''' Minimise white space around plot in panel '''
         self.viewer.subplots_adjust(left = 0.01, bottom = 0.01, right = 0.99, top = 0.99)
 
         self.axes.axes.axis('off')
         self.axes.axes.get_xaxis().set_ticks([])
         self.axes.axes.get_yaxis().set_ticks([])
-
 
 
     def update_colours_active(self, to_activate = [],
@@ -3040,13 +2830,10 @@ class AssemblyManager():
         self.axes.axes.get_yaxis().set_ticks([])
 
 
-
-
     ''' ----------------------------------------------------------------------
         ALL PROJECT/LATTICE DATA EXCHANGE HERE
         ----------------------------------------------------------------------
     '''
-
 
 
     ''' HR 22/02/22 To grab list of node info for export etc. '''
@@ -3100,7 +2887,6 @@ class AssemblyManager():
             level[0] -= 1
 
 
-
         ''' Starts here: get head info then traverse graph recursively '''
         # try:
         #     head = assembly.head
@@ -3134,7 +2920,6 @@ class AssemblyManager():
         get_children(head)
 
         return node_info, node_list
-
 
 
     ''' HR June 21 Method removed from StrEmbed
@@ -3262,9 +3047,6 @@ class AssemblyManager():
             return False
 
 
-
-
-
 class StepParse(nx.DiGraph):
 
     def __init__(self, assembly_id = None, *args, **kwargs):
@@ -3305,7 +3087,6 @@ class StepParse(nx.DiGraph):
         self.file_loaded = False
 
 
-
     @property
     def new_node_id(self):
         if not hasattr(self, 'id_counter'):
@@ -3314,7 +3095,6 @@ class StepParse(nx.DiGraph):
         while self.id_counter in self.nodes:
             self.id_counter += 1
         return self.id_counter
-
 
 
     # ''' Overridden to add label to node upon creation '''
@@ -3333,7 +3113,6 @@ class StepParse(nx.DiGraph):
     #                     pass
     #         else:
     #             self.nodes[node][kwd] = self.default_label_part
-
 
 
     ''' HR 09/06/22 To avoid problem with lattice nodes not being deleted '''
@@ -3359,14 +3138,12 @@ class StepParse(nx.DiGraph):
                 self.nodes[node][kwd] = self.default_label_part
 
 
-
     # def print_all_items(self):
     #     print('\nAll nodes and edges:')
     #     for node in self.nodes:
     #         print(node, self.nodes[node])
     #     for edge in self.edges:
     #         print(edge, self.edges[edge])
-
 
 
     ''' Set node and edge labels to node identifier
@@ -3378,7 +3155,6 @@ class StepParse(nx.DiGraph):
         for edge in self.edges:
             if not 'tag' in self.edges[edge]:
                 self.edges[edge]['tag'] = edge
-
 
 
     def get_screen_name(self, occ_name, shape):
@@ -3421,7 +3197,6 @@ class StepParse(nx.DiGraph):
 
         print(' Returning screen name: ', nm_full)
         return nm_full
-
 
 
     @property
@@ -3490,7 +3265,6 @@ class StepParse(nx.DiGraph):
             return name
 
 
-
         ''' HR May 21 To get all product names from STEP files
             This all assumes products have non-empty names,
             otherwise logic would have to be completely revised
@@ -3506,7 +3280,6 @@ class StepParse(nx.DiGraph):
                 self._product_names.append(get_product_name(line))
 
         return self._product_names
-
 
 
     ''' HR 25/02/22 New version to remove unnecessary head node if only one "free shape" at root;
@@ -3563,7 +3336,6 @@ class StepParse(nx.DiGraph):
         ''' loc tracks spatial transformation through each level of assembly structure
             i.e. for each IsAssembly level, but not for sub-shapes '''
         locs = []
-
 
 
         def _get_sub_shapes(lab, loc):
@@ -3624,15 +3396,12 @@ class StepParse(nx.DiGraph):
                     # print('    shape color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
 
 
-
             # ''' Shape-specific (i.e. non-assembly) properties '''
             # # attr_dict = {'screen_name': self.get_screen_name(name, shape),
             # #              'shape_raw': [shape, loc],
             # #              'shape_loc': [BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape(), c]}
             # attr_dict = {'shape_loc': [BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape(), c]}
             # nx.set_node_attributes(self, {node: attr_dict})
-
-
 
 
             ''' Properties common to assemblies and shapes
@@ -3651,7 +3420,6 @@ class StepParse(nx.DiGraph):
                          'shape_loc': [shape_loc, c]}
             self.add_node(node, **attr_dict)
             self.add_edge(self.parent, node)
-
 
 
             if shape_tool.IsAssembly(lab):
@@ -3697,7 +3465,6 @@ class StepParse(nx.DiGraph):
                         locs.pop()
 
 
-
             elif shape_tool.IsSimpleShape(lab):
 
                 ''' Get sub-shapes-> l_subss '''
@@ -3741,7 +3508,6 @@ class StepParse(nx.DiGraph):
                 #         # print('    shape color Name & RGB: ', c, n, c.Red(), c.Green(), c.Blue())
 
 
-
                 # ''' Shape-specific (i.e. non-assembly) properties '''
                 # # attr_dict = {'screen_name': self.get_screen_name(name, shape),
                 # #              'shape_raw': [shape, loc],
@@ -3752,7 +3518,6 @@ class StepParse(nx.DiGraph):
                 self.parent = node
 
 
-
                 # ''' Location (loc) is applied in sequence '''
                 # shape_disp = BRepBuilderAPI_Transform(shape, loc.Transformation()).Shape()
 
@@ -3760,11 +3525,9 @@ class StepParse(nx.DiGraph):
                 #     output_shapes[shape_disp] = [lab.GetLabelName(), c]
 
 
-
                 ''' Return if sub-shapes are not required '''
                 if not get_subshapes:
                     return
-
 
 
                 for i in range(l_subss.Length()):
@@ -3818,7 +3581,6 @@ class StepParse(nx.DiGraph):
                     self.add_edge(self.parent, node)
 
 
-
         ''' Create graph structure for shape data '''
         head = self.new_node_id
         self.head = head
@@ -3830,7 +3592,6 @@ class StepParse(nx.DiGraph):
                      'is_subshape': False,
                      'is_product': False}
         self.add_node(head, **attr_dict)
-
 
 
         # def _get_shapes():
@@ -3854,7 +3615,6 @@ class StepParse(nx.DiGraph):
         # # return output_shapes
 
 
-
         ''' Correct colours in "args" of colour objects '''
         self.update_colour_objects()
         ''' ------------------------------------------- '''
@@ -3871,7 +3631,6 @@ class StepParse(nx.DiGraph):
         self.file_loaded = True
 
 
-
     ''' HR 21/04/22 Workaround to update "args" of Quantity_Color SWIG objects
                     otherwise colours not copied correctly if deep-copied
                     e.g. when assembly is duplicated or saved '''
@@ -3886,7 +3645,6 @@ class StepParse(nx.DiGraph):
                 b = colour_obj.Blue()
                 _end = colour_obj.args[-1]
                 colour_obj.args = (r,g,b,_end)
-
 
 
     ''' HR 21/04/22 Refactored to render all leaves contained by node,
@@ -3932,7 +3690,6 @@ class StepParse(nx.DiGraph):
                 img_data = None
 
             return img_data
-
 
 
         ''' Grab node dict, shorthand '''
@@ -3991,7 +3748,6 @@ class StepParse(nx.DiGraph):
                             _to_render.append(el)
 
 
-
         ''' Get image; default to "no image" png if not successful '''
         if _to_render:
             img_data = render(_to_render)
@@ -4003,7 +3759,6 @@ class StepParse(nx.DiGraph):
             img_data = None
 
         return img_data
-
 
 
     ''' HR 13/06/22 To split off into separate method for use elsewhere '''
@@ -4021,7 +3776,6 @@ class StepParse(nx.DiGraph):
         print('Found redundant nodes: ', redundants)
         print(' in assembly', self.assembly_id)
         return redundants
-
 
 
     # ''' Remove all single-child sub-assemblies as not compatible with lattice '''
@@ -4052,7 +3806,6 @@ class StepParse(nx.DiGraph):
 
     #     # print('Removed redundants')
     #     return to_remove
-
 
 
     ''' HR 13/06/22 Refactored to integrate better with corresponding lattice method
@@ -4112,7 +3865,6 @@ class StepParse(nx.DiGraph):
         return redundant_nodes, edges_removed, edges_added
 
 
-
     ''' Finds root of graph containing reference node, which is passed for speed;
         otherwise start with first in node list (as any random one will do) '''
     def get_root(self, node = None):
@@ -4133,17 +3885,6 @@ class StepParse(nx.DiGraph):
         return child
 
 
-
-    # def get_parent(self, node):
-    #     ''' Get parent of node; return None if parent not present '''
-    #     parent = [el for el in self.predecessors(node)]
-    #     if parent:
-    #         return parent[-1]
-    #     else:
-    #         return None
-
-
-
     ''' HR 09/06/22 New version to catch exception if node already removed '''
     def get_parent(self, node):
         ''' Get parent of node; return None if parent not present '''
@@ -4156,7 +3897,6 @@ class StepParse(nx.DiGraph):
             return None
 
 
-
     # def get_child(self, node):
     #     ''' Get (single) child of node; return None if parent not present
     #         Best used only when removing redundant (i.e. single-child) subassemblies '''
@@ -4165,7 +3905,6 @@ class StepParse(nx.DiGraph):
     #         return child[-1]
     #     else:
     #         return None
-
 
 
     ''' HR 09/06/22 New version to catch exception if no child present '''
@@ -4181,7 +3920,6 @@ class StepParse(nx.DiGraph):
             return None
 
 
-
     @property
     def leaves(self):
         ''' Get leaf nodes '''
@@ -4195,7 +3933,6 @@ class StepParse(nx.DiGraph):
         return leaves
 
 
-
     def node_depth(self, node):
         ''' Get depth of node(s) from root '''
         root = self.get_root(node)
@@ -4207,7 +3944,6 @@ class StepParse(nx.DiGraph):
         old_parent = self.get_parent(node)
         self.remove_edge(old_parent, node)
         self.add_edge(new_parent, node)
-
 
 
     '''
@@ -4243,7 +3979,6 @@ class StepParse(nx.DiGraph):
         return leaves_in
 
 
-
     ''' Memoise combinations '''
     def get_comb(self, n, k):
         if not hasattr(self, 'nCk'):
@@ -4252,7 +3987,6 @@ class StepParse(nx.DiGraph):
         if (n,k) not in self.nCk:
             self.nCk[(n,k)] = binom(n,k)
         return self.nCk[(n,k)]
-
 
 
     def get_positions(self, nodes = None):
@@ -4318,13 +4052,10 @@ class StepParse(nx.DiGraph):
     '''
 
 
-
-
     '''
     HR 12/05/20
     -----------
     All combinatorial ranking/unranking methods here '''
-
 
 
     def stirling_ln(self, n):
@@ -4338,12 +4069,10 @@ class StepParse(nx.DiGraph):
         return result
 
 
-
     def comb_ln(self, n, k):
         result = self.stirling_ln(n) - self.stirling_ln(k) - self.stirling_ln(n-k)
         # print('Log combination approx. for (n, k) = ', (n,k), ': ', result)
         return result
-
 
 
     '''
@@ -4383,7 +4112,6 @@ class StepParse(nx.DiGraph):
             rank += comb
 
         return rank
-
 
 
     '''
@@ -4433,7 +4161,6 @@ class StepParse(nx.DiGraph):
         rank = float(rank)
 
 
-
         ''' Optimisation as (n+1 k) = (n k)*(n+1)/(n+1-m) '''
         def next_comb(n, k, comb):
             _next = (comb*(n+1))/(n+1-k)
@@ -4443,7 +4170,6 @@ class StepParse(nx.DiGraph):
         def comb_(n, k):
             result = self.get_comb(n, k)
             return result
-
 
 
         '''
@@ -4475,51 +4201,9 @@ class StepParse(nx.DiGraph):
 
         return items
 
-
-
-        ''' Alternative algorithm for unranking '''
-        # '''
-        # Algorithm 515 (Buckles_77, DOI: https://doi.org/10.1145/355732.355739 )
-        # For indexing combinations -> lexicographic ordering for ranking/unranking
-        # Taken from Github repo of sleeepyjack here:
-        # https://github.com/sleeepyjack/alg515/blob/master/python/alg515.py
-        # '''
-
-        # from scipy.special import binom
-
-        # def comb(N, P, L):
-        #     C = [0] * P
-        #     X = 1
-        #     R = int(binom(N-X, P-1))
-        #     K = R
-
-        #     while (K <= L):
-        #         X += 1
-        #         R  = int(binom(N-X, P-1))
-        #         K += R
-        #     K -= R
-        #     C[0] = X-1
-
-        #     for I in range(2, P):
-        #         X += 1
-        #         R  = int(binom(N-X, P-I))
-        #         K += R
-        #         while (K <= L):
-        #             X += 1
-        #             R  = int(binom(N-X, P-I))
-        #             K += R
-        #         K -= R
-        #         C[I-1] = X-1
-        #     C[P-1] = X + L - K
-        #     return C
-
-
-
     '''
     SPLIT AND RENDER METHODS HERE
     '''
-
-
 
     ''' Image renderer (copied from StrEmbed) '''
     def quick_render(self, shape, colour = None, img_file = None):
@@ -4562,7 +4246,6 @@ class StepParse(nx.DiGraph):
             image_saved_ok = False
 
         return image_saved_ok
-
 
 
     ''' HR June 21 Updated to allow only products to be dumped '''
@@ -4613,7 +4296,6 @@ class StepParse(nx.DiGraph):
             else:
                 name = d['screen_name']
             shapes[shape] = name
-
 
 
         ''' Abort if no shapes '''
