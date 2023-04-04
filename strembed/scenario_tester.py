@@ -309,6 +309,7 @@ M[('RE', 'RM')] = {(5, 8),  # Bogie frame GJ
 '''
 FIVE-PIECE PUZZLE
 '''
+
 '''' COMBINATORIAL matches only, i.e. no solely NOTIONAL matches '''
 M[('P1', 'P2')] = {(2,2),#P1, P2
                              (3,3),#{ABC},D, {part1part2,part3},part4
@@ -549,8 +550,8 @@ if __name__ == "__main__":
     '''
     # filefull1 = os.path.join(bom_dir, file1)
     # filefull2 = os.path.join(bom_dir, file2)
-    bom1 = "T1"
-    bom2 = "T2"
+    bom1 = "P1"
+    bom2 = "P2"
     path1 = bom_path(bom1)
     path2 = bom_path(bom2)
 
@@ -569,12 +570,13 @@ if __name__ == "__main__":
     ass2.load_step(path2)
     # ass2.remove_redundants()
 
-    weights = [1,0,0,0]
+    weights = [1,1,1,1]
     structure_weights = [1,1,1,1]
     results = am.matching_strategy(id1 = id1, id2 = id2, stages = [((None, {}), ('mb', {'weights': weights, 'structure_weights': structure_weights}))])
     # results = am.matching_strategy(id1 = id1, id2 = id2, stages = [((None, {}), ('mb', {'weights': weights, 'structure_weights': structure_weights}))], match_subs = True)
+    scores_dict = results[-1]
 
-    print('Matching results:\n', results)
+    # print('Matching results:\n', results)
     print('\nFinished "OnRecon"\n')
 
     mu = results[1][0]
