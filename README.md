@@ -6,7 +6,7 @@ You can download ```StrEmbed``` as an executable or as source code to run in you
 
 1. (Recommended) Download the ```StrEmbed.exe``` executable file from the "Releases" page (see link on right-hand side of this page). Double-click the file and the ```StrEmbed``` app will run; it does not require Python or anything else to be installed on your machine.
 2. Download the source code file bundle (```.zip``` or ```.tar.gz``` format) from the "Code" tab at the top of this page, then import the necessary files into your Python environment. Detailed instructions for setting up your environment and creating your own executable (not recommended) are given in the user manual and here. For this option and the one below, you must also install ```PartFind```, a dependency of ```StrEmbed```, with this command: ```pip install git+https://github.com/thazlehurst/partfind@strembed_legacy```
-3. Alternatively, clone the repository using ```git```. Use the following command: ```git clone https://github.com/paddy-r/StrEmbed-6-1```.
+3. Alternatively, clone the repository using ```git```. Use the following command: ```git clone https://github.com/paddy-r/StrEmbed-6-1```, the install into your environment with ```pip install -v -e .```.
 
 ___
 
