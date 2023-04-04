@@ -29,8 +29,23 @@ dist*/*
 #data/images/images.py
 
 # Non-repo STEP files
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+data/_For\ BoM\ recon\ paper"
+=======
+>>>>>>> Stashed changes
 data/_For\ BoM\ recon\ paper"
 
 # All scenario logging outputs
 data/logs/
+<<<<<<< Updated upstream
 data/log/*
+=======
+data/log/*
+output/
+output/*
+output/logs/
+output/logs/*
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
