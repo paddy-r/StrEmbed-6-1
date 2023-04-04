@@ -14,6 +14,7 @@ Created on Wed Jul 27 14:58:53 2022
 
 
 import step_parse as sp
+from scenario_tester import bom_path
 import os
 
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
@@ -47,12 +48,12 @@ def get_mass_props(shape):
     return cog, matrix_of_inertia, mass
 
 
-def get_all_dimensions(_id, tol = 0):
-    ass = am._mgr[_id]
+def get_all_dimensions(manager, _id, tol = 0):
+    ass = manager._mgr[_id]
     bb_dict = {}
     for node in ass.leaves:
         print('Getting dimensions of node', node, 'in assembly', _id)
-        bb_dict[node] = {}
+        bb_dict[node] = {'name': ass.nodes[node]['screen_name']}
         shape = ass.nodes[node]['shape_loc'][0]
         dims = sp.get_dimensions(shape, get_centre = True, tol = tol)
         bb_dict[node]['dims'] = dims
@@ -61,83 +62,76 @@ def get_all_dimensions(_id, tol = 0):
     return bb_dict
 
 
-am = sp.AssemblyManager()
+if __name__ == "__main__":
 
-# bom_dir = "<ADD PATH>"
+    ''' HR 04/04/23
+        Commented out most of what's below
+        Just need to test mass/volume calculation and that it works in pipeline
+    '''
+    am = sp.AssemblyManager()
 
-# file1 = 'Trailer car TC (EBOM).STEP'
-# file2 = 'Trailer car TC (G-SBOM).STEP'
-# file3 = 'Trailer car TC (MBOM).STEP'
+    file1 = bom_path("T1")
+    file2 = bom_path("T2")
+    # file3 = bom_path("P3")
 
-# bom_dir = "<ADD PATH>"
+    id1, ass1 = am.new_assembly()
+    ass1.load_step(file1)
 
-# file1 = 'T1.STEP'
-# file2 = 'T2.STEP'
-# file3 = 'T3.STEP'
+    id2,ass2 = am.new_assembly()
+    ass2.load_step(file2)
 
-bom_dir = "<ADD PATH>"
+    d1 = get_all_dimensions(am, 1)
+    print(d1)
+    d2 = get_all_dimensions(am, 2)
+    print(d2)
 
-file1 = 'P1.STEP'
-file2 = 'P2.STEP'
-file3 = 'P4.STEP'
+    # id3,ass3 = am.new_assembly()
+    # ass3.load_step(file3)
 
-filefull1 = os.path.join(bom_dir, file1)
-filefull2 = os.path.join(bom_dir, file2)
-filefull3 = os.path.join(bom_dir, file3)
-
-id1, ass1 = am.new_assembly()
-ass1.load_step(filefull1)
-
-id2,ass2 = am.new_assembly()
-ass2.load_step(filefull2)
-
-id3,ass3 = am.new_assembly()
-ass3.load_step(filefull3)
-
-com1, mass1 = am.get_mass_data(1, 6)
-com2, mass2 = am.get_mass_data(1, 7)
-com3, mass3 = am.get_mass_data(1, ass1.get_root())
-
-ass = ass1
-com_dict = {}
-for node in ass.nodes:
-    shape = ass.nodes[node]['shape_loc'][0]
-    name = ass.nodes[node]['screen_name']
-    if name:
-        print(node, name)
-        com_dict[node] = sp.get_mass_properties(shape)[0]
-
-''' Testing for distance score based on centre of mass, with and without scaling '''
-_scale = mass3**(1/3)
-
-res = sp.get_distance_score(com1, com2)
-print(res)
-
-res = sp.get_distance_score(com1, com2, scale = _scale)
-print(res)
-
-res = sp.get_distance_score(com1, com2, exponential = True)
-print(res)
-
-res = sp.get_distance_score(com1, com2, exponential = True, scale = _scale)
-print(res)
-
-''' Testing for score based on volume, with sum vs. max value as divisor '''
-ref_node = 8
-compare_nodes = list(ass1.nodes)
-compare_nodes.remove(ref_node)
-
-for node in compare_nodes:
-    print('\n')
-    shape1 = ass1.nodes[ref_node]['shape_loc'][0]
-    data1 = sp.get_mass_properties(shape1)
-    shape2 = ass1.nodes[node]['shape_loc'][0]
-    data2 = sp.get_mass_properties(shape2)
-    
-    print('Ref node:', ref_node, ass1.nodes[ref_node]['screen_name'])
-    print('Compare node:', node, ass1.nodes[node]['screen_name'])
-
-    res = sp.get_mass_score(data1[1],data2[1])
-    print(res)
-    res = sp.get_mass_score(data1[1],data2[1], do_max = False)
-    print(res)
+    # com1, mass1 = am.get_mass_data(1, 6)
+    # com2, mass2 = am.get_mass_data(1, 7)
+    # com3, mass3 = am.get_mass_data(1, ass1.get_root())
+    #
+    # ass = ass1
+    # com_dict = {}
+    # for node in ass.nodes:
+    #     shape = ass.nodes[node]['shape_loc'][0]
+    #     name = ass.nodes[node]['screen_name']
+    #     if name:
+    #         print(node, name)
+    #         com_dict[node] = sp.get_mass_properties(shape)[0]
+    #
+    # ''' Testing for distance score based on centre of mass, with and without scaling '''
+    # _scale = mass3**(1/3)
+    #
+    # res = sp.get_distance_score(com1, com2)
+    # print(res)
+    #
+    # res = sp.get_distance_score(com1, com2, scale = _scale)
+    # print(res)
+    #
+    # res = sp.get_distance_score(com1, com2, exponential = True)
+    # print(res)
+    #
+    # res = sp.get_distance_score(com1, com2, exponential = True, scale = _scale)
+    # print(res)
+    #
+    # ''' Testing for score based on volume, with sum vs. max value as divisor '''
+    # ref_node = 8
+    # compare_nodes = list(ass1.nodes)
+    # compare_nodes.remove(ref_node)
+    #
+    # for node in compare_nodes:
+    #     print('\n')
+    #     shape1 = ass1.nodes[ref_node]['shape_loc'][0]
+    #     data1 = sp.get_mass_properties(shape1)
+    #     shape2 = ass1.nodes[node]['shape_loc'][0]
+    #     data2 = sp.get_mass_properties(shape2)
+    #
+    #     print('Ref node:', ref_node, ass1.nodes[ref_node]['screen_name'])
+    #     print('Compare node:', node, ass1.nodes[node]['screen_name'])
+    #
+    #     res = sp.get_mass_score(data1[1],data2[1])
+    #     print(res)
+    #     res = sp.get_mass_score(data1[1],data2[1], do_max = False)
+    #     print(res)

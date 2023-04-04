@@ -137,14 +137,14 @@ from OCC.Core.BRepGProp import brepgprop_VolumeProperties
 
 
 ''' HR 09/12/21 Adding PartCompare import to allow shape-based similarity scores '''
-from .part_compare import PartCompare, load_from_step
+from strembed.part_compare import PartCompare, load_from_step
 
 ''' HR 12/12/21 For pickling graphs of shapes for faster retrieval in similarity scoring '''
 import pickle
 ''' HR 17/03/22 For duplicating assemblies '''
 import copy
 
-from . import hungarian_algorithm as hungalg
+from strembed import hungarian_algorithm as hungalg
 
 
 ''' HR 08/04/22 NOT WORKING; HACKED CLASS DEFINITIONS IN SOURCE FILES '''
