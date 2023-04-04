@@ -21,9 +21,21 @@ import copy
 # from OCC.Core.TopoDS import TopoDS_Shape
 import os
 from os.path import dirname as up
+import time
+import io
+from contextlib import redirect_stdout, redirect_stderr
+
+
+def get_time():
+    timefull = str(time.strftime("%Y_%m_%d_%H_%M"))
+    return timefull
 
 
 ''' Set here and all references below are relative to this '''
+OUTPUT_FOLDER = os.path.join(up(up(__file__)),
+                             'output',
+                             'logs')
+
 DATA_FOLDER = os.path.join(up(up(up(up(up(__file__))))),
                            "_Data and models",
                            "_For BoM recon paper")
@@ -76,10 +88,10 @@ def bom_path(bom_id):
     return None
 
 
-def save_matching_results(results, filename = None):
+def save_matching_results(results, filename=None):
     if not filename:
-        filename = str(time.strftime("%Y-%m-%d %H:%M")) + '.pkl'
-        filename = filename.replace(':','-')
+        filename = 'results_' + get_time() + '.pkl'
+        # filename = filename.replace(':','-')
 
     try:
         with open(filename, 'wb') as handle:
@@ -114,7 +126,6 @@ def load_matching_results(filename):
 #     ass2.load_step(file2)
 #     # am.AddToLattice(id2)
 #     return am
-
 
 
 # def run_scenario(am, id1, id2, strategy = None):
@@ -478,83 +489,15 @@ M[('T1', 'T8')] = {(2, 2),  # ASSEMBLY, DISASSEMBLY BOM (T8) (TORCH BODY has six
 #                              }
 
 
-''' All code below is for running BoM reconciliation strategies
-    and assessing their matching success '''
-if __name__ == "__main__":
-
-    # suffixes = ('.stp', '.step', '.STP', '.STEP')
-
-    ''' Older BoMs used during testing '''
-    # file1 = '5 parts_{3,1},1.STEP'
-    # file1 = 'Steam Engine STEP.STEP'
-    # file1 = 'cakestep.stp'
-    # file1 = 'PARKING_TROLLEY.STEP'
-    # file1 = 'puzzle_1b.STEP'
-    # file1 = 'puzzle_1c.STEP'
-    # file2 = 'puzzle_1d.STEP'
-
-    # file2 = 'Trailer car TC (EBOM).STEP'
-    # file2 = 'Trailer car TC (G-SBOM).STEP'
-    # file2 = 'Trailer car TC (MBOM).STEP'
-    # file2 = 'puzzle_1b.STEP'
-    # file2 = 'puzzle_1c.STEP'
-    # file2 = 'puzzle_1d.STEP'
-
-
-    '''
-    HR 22/06/22 To standardise method for producing results for BoM recon paper
-    '''
-
-
-    ''' Puzzle BoMs '''
-
-    # file1 = 'P1.STEP'
-    # file2 = 'P2.STEP'
-    # file2 = 'P3.STEP'
-    # file2 = 'P4.STEP'
-    # file2 = 'P5.STEP'
-    # file2 = 'P6.STEP'
-    # file2 = 'P7.STEP'
-    # file2 = 'P8.STEP'
-    # file2 = file1
-
-    ''' Torch BoMs '''
-
-    # file1 = 'T1.STEP'
-    # # file2 = 'T2.STEP'
-    # # file2 = 'T3.STEP'
-    # # file2 = 'T3_agg.STEP'
-    # file2 = 'T4.STEP'
-    # file2 = 'T5.STEP'
-    # file2 = 'T5_agg.STEP'
-    # file2 = 'T6.STEP'
-    # file2 = 'T6_agg.STEP'
-    # file2 = 'T7.STEP'
-    # file2 = 'T8.STEP'
-    # file2 = 'T8_agg.STEP'
-    # file2 = file1
-
-    ''' Railway carriage BoMs '''
-
-    # file1 = 'Trailer car TC (EBOM).STEP'
-    # file1 = 'Trailer car TC (G-SBOM).STEP'
-    # file1 = 'Trailer car TC (MBOM).STEP'
-    # file2 = 'Trailer car TC (EBOM).STEP'
-    # file2 = 'Trailer car TC (G-SBOM).STEP'
-    # file2 = 'Trailer car TC (MBOM).STEP'
-    # file2 = file1
-
+def run_scenario(bom1, bom2, *args, **kwargs):
+    ''' All code below is for running BoM reconciliation strategies
+        and assessing their matching success '''
 
     '''
     ASSEMBLE FULL PATHs
     '''
-    # filefull1 = os.path.join(bom_dir, file1)
-    # filefull2 = os.path.join(bom_dir, file2)
-    bom1 = "P1"
-    bom2 = "P2"
     path1 = bom_path(bom1)
     path2 = bom_path(bom2)
-
 
     ''' HR 22/07/22 To merge with "parse_tester"; block below from there '''
 
@@ -574,30 +517,13 @@ if __name__ == "__main__":
     structure_weights = [1,1,1,1]
     results = am.matching_strategy(id1 = id1, id2 = id2, stages = [((None, {}), ('mb', {'weights': weights, 'structure_weights': structure_weights}))])
     # results = am.matching_strategy(id1 = id1, id2 = id2, stages = [((None, {}), ('mb', {'weights': weights, 'structure_weights': structure_weights}))], match_subs = True)
-    scores_dict = results[-1]
+    # scores_dict = results[-1]
 
     # print('Matching results:\n', results)
     print('\nFinished "OnRecon"\n')
 
     mu = results[1][0]
     am.AddToLattice(id1, id2, mu)
-
-    ''' Older strategies before fetching results and adding to lattice were separated as methods '''
-    # am.AddToLattice(id2, stages = [((None, {}), ('mb', {'weights': [1,1,1,1]}))])
-    # am.AddToLattice(id2, stages = [(('bb', {}), ('mb', {'weights': [1,0,1,0]}))])
-    # am.AddToLattice(id2, stages = [(('bb', {}), ('mb', {'weights': [0,1,0,0]}))])
-    # am.AddToLattice(id2, stages = [((None, {}), ('mb', {'weights': [0,1,0,1], 'structure_weights': [0,1,1,1]}))])
-    # am.AddToLattice(id2, stages = [((None, {}), ('mb', {'weights': [1,0,0,0]}))])
-    ''' --- '''
-
-    ''' Alternative (older) way of getting matches in two stages: leaf matches then subs, then add them;
-        retaining as could be useful '''
-    # results = am.match_block(id1, id2, nodes1 = n1, nodes2 = n2, weights = [1,0,0,0], structure_weights = [1,0,1,1], scale = True)
-    # results_subs = am.match_by_comb(id1,id2,results[0])
-
-    # all_matches = results[0] + results_subs[0]
-    # mu = set(all_matches)
-
 
     ''' Prepare true matches '''
     if bom1 == bom2:
@@ -615,21 +541,6 @@ if __name__ == "__main__":
             M_ = {(el[1],el[0]) for el in M_}
         else:
             print('True matches not found; aborting')
-
-
-    ''' Obsolete as refers to older BoMs contrived to have nodes removed on the fly;
-        current ones were created to order by HHC '''
-    # ''' Remove/disregard nodes and matches containing them '''
-    # delete_nodes = False
-    # number_to_remove = 0
-    # ass1, picks, removed, M_ = remove_some(ass1, number_to_remove, M_, delete_nodes = delete_nodes)
-
-    # ''' Ignore nodes that have been removed/are to be disregarded '''
-    # for pick in picks:
-    #     try:
-    #         n1.remove(pick)
-    #     except:
-    #         pass
 
 
     '''
@@ -664,3 +575,48 @@ if __name__ == "__main__":
     print_names((mu - M_))
     print('|FN|:', len(M_ - mu))
     print('|FP|:', len(mu - M_))
+
+    return results
+
+
+if __name__ == "__main__":
+
+    ''' HR 04/04/23 To run in context manager so stdout feed can be captured
+                    Feed and scores dict then dumped to files
+                    Adapted from simple answer here: https://stackoverflow.com/questions/1218933/can-i-redirect-the-stdout-into-some-sort-of-string-buffer '''
+    with io.StringIO() as buffer, redirect_stdout(buffer):
+        print('\n## Redirected stdout...')
+
+        bom1 = "P1"
+        bom2 = "P2"
+
+        t = get_time()
+        scores_out_filename = "scores_" + t + ".pkl"
+        scores_out = os.path.join(OUTPUT_FOLDER, scores_out_filename)
+
+        feed_out_filename = "feed_" + t + ".txt"
+        feed_out = os.path.join(OUTPUT_FOLDER, feed_out_filename)
+
+        print("\n## Running scenario via 'scenario_tester'... ##")
+        print("## BoM IDs:", bom1, bom2, "\n")
+
+        bom1 = "P1"
+        bom2 = "P2"
+        scores_dict = run_scenario(bom1, bom2)[-1]
+
+        print('\n## Done running scenario... ##\n')
+
+        ## Save scores here
+        print('Saving scores to', scores_out)
+        save_matching_results(scores_dict, scores_out)
+        print('Done')
+
+        ## Save stdout here
+        print('Saving stdout to', feed_out)
+        output = buffer.getvalue()
+        with open(feed_out, 'a') as file_handle:
+            file_handle.write(output)
+
+    # Also dump stdout to screen as otherwise not visible!
+    print(output)
+
