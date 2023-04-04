@@ -30,3 +30,7 @@ dist*/*
 
 # Non-repo STEP files
 data/_For\ BoM\ recon\ paper"
+
+# All scenario logging outputs
+data/logs/
+data/log/*

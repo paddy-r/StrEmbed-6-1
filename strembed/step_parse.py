@@ -161,7 +161,7 @@ from . import hungarian_algorithm as hungalg
 #     or
 #     <class 'TopoDS_Shape'>
 #     """
-#     print('\n  LINE IN "Quantity": ', str(klass.__class__), '\n')
+#     print('\n  LINE IN "Quantity":', str(klass.__class__), '\n')
 #     klass_name = str(klass.__class__).split(".")[-1].split("'")[0]
 #     # klass_name = str(klass.__class__).split(".")[3].split("'")[0]
 #     repr_string = "<class '" + klass_name + "'"
@@ -184,7 +184,7 @@ from . import hungarian_algorithm as hungalg
 #         if klass.IsNull():
 #             repr_string += "; Null"
 #     repr_string += ">"
-#     print('\n  FULL CLASS NAME: ', repr_string, '\n')
+#     print('\n  FULL CLASS NAME:', repr_string, '\n')
 #     return repr_string
 
 
@@ -270,7 +270,7 @@ def get_dimensions(shape, tol = 1e-6, use_mesh = True, get_centre = False):
     ##You should have received a copy of the GNU Lesser General Public License
     ##along with pythonOCC.  If not, see <http://www.gnu.org/licenses/>.
 
-    print('Getting aspect ratios for ', shape)
+    print('Getting aspect ratios for', shape)
     bbox = Bnd_Box()
     bbox.SetGap(tol)
     # bbox.SetGap(0)
@@ -290,7 +290,7 @@ def get_dimensions(shape, tol = 1e-6, use_mesh = True, get_centre = False):
     dx,dy,dz = xmax-xmin, ymax-ymin, zmax-zmin
     dim = dx,dy,dz
     ar = sorted((dx/dy, dy/dz, dz/dx))
-    print('Done BB calcs for ', shape)
+    print('Done BB calcs for', shape)
     return dim, ar
 
 
@@ -310,7 +310,7 @@ def get_bb_score(ar1, ar2, phi = 1):
     r3 = geo_abs(ar1[2], ar2[2])
     score = (r1+r2+r3)/(3*phi)
 
-    # print('Score: ', score)
+    # print('Score:', score)
     return score
 
 
@@ -704,7 +704,7 @@ class AssemblyManager():
 
         ''' Add to manager '''
         self._mgr[assembly_id] = assembly
-        print('Created new assembly with ID: ', assembly_id)
+        print('Created new assembly with ID:', assembly_id)
 
         if 'enforce_binary' in kwargs:
             assembly.enforce_binary = kwargs['enforce_binary']
@@ -739,10 +739,10 @@ class AssemblyManager():
         # for k,v in ass_old.__dict__.items():
         #     try:
         #         new_dict[k] = copy.deepcopy(v)
-        #         print('Copied ', k,v)
-        #         print( 'to: ', k,new_dict[k])
+        #         print('Copied', k,v)
+        #         print( 'to:', k,new_dict[k])
         #     except Exception as e:
-        #         print(' Could not copy ', k,v, '; exception follows')
+        #         print(' Could not copy', k,v, '; exception follows')
         #         print(e)
         # ''' Copy everything over '''
         # ass_new.__dict__.update(new_dict)
@@ -757,7 +757,7 @@ class AssemblyManager():
 
     ''' HR 11/04/22 To import pickled StepParse file '''
     def import_assembly(self, filename):
-        print('Trying to import assembly from file: ', filename)
+        print('Trying to import assembly from file:', filename)
 
         try:
             with open(filename, 'rb') as handle:
@@ -776,7 +776,7 @@ class AssemblyManager():
 
         ''' Add to manager '''
         self._mgr[new_id] = ass_imported
-        print('Imported assembly with new ID: ', new_id, '(was', old_id, 'in file)')
+        print('Imported assembly with new ID: new_id, (was', old_id, 'in file)')
 
         ''' Return ID and name, in common with "new_assembly" and "duplicate_assembly" '''
         return new_id, ass_imported
@@ -784,7 +784,7 @@ class AssemblyManager():
 
     ''' HR 12/04/22 To export StepParse via pickle '''
     def save_assembly(self, filename, ID):
-        print('Trying to export assembly ', ID, 'to file: ', filename)
+        print('Trying to export assembly', ID, 'to file:', filename)
         if not ID in self._mgr:
             print('Assembly not found, returning False')
             return False
@@ -878,7 +878,7 @@ class AssemblyManager():
 
         ''' Allow node to be added to leaf if "disaggregate" flag is true '''
         if parent not in leaves:
-            print('ID of node to add node to: ', parent)
+            print('ID of node to add node to:', parent)
         else:
             if not disaggregate:
                 print('Cannot add node: item is a leaf node/irreducible part')
@@ -915,7 +915,7 @@ class AssemblyManager():
 
     #     ''' Abort if not enforced '''
     #     if not ass.enforce_binary:
-    #         print('Not enforcing binary relations; disallowed for assembly ', _id)
+    #         print('Not enforcing binary relations; disallowed for assembly', _id)
     #         return
 
     #     parent = ass.get_parent(node)
@@ -926,7 +926,7 @@ class AssemblyManager():
     #         return
 
     #     print('Single child; removing and linking past node')
-    #     print('Assembly ', _id, '; node ', node)
+    #     print('Assembly', _id, '; node', node)
 
     #     ''' Reparent orphans-to-be '''
     #     for child in children:
@@ -946,7 +946,7 @@ class AssemblyManager():
         parent = ass.get_parent(node)
         leaves = ass.leaves
 
-        print('Trying to remove node', node, 'in assembly ', ass.assembly_name)
+        print('Trying to remove node', node, 'in assembly', ass.assembly_name)
 
         '''
         NOTES
@@ -970,7 +970,7 @@ class AssemblyManager():
         outs = list(ass.out_edges(node))
         edges = ins + outs
         for edge in edges:
-            print('Removing edge: ', edge[0], edge[1])
+            print('Removing edge:', edge[0], edge[1])
             self.remove_edge_in_lattice(_id, edge[0], edge[1])
 
         ''' Remove node and edges (assembly) '''
@@ -1034,10 +1034,10 @@ class AssemblyManager():
         depths = {}
         for node in nodes:
             depths[node] = ass.node_depth(node)
-            print('ID = ', node, '; parent depth = ', depths[node])
+            print('ID =', node, '; parent depth =', depths[node])
         highest_node = min(depths, key = depths.get)
         new_parent = ass.get_parent(highest_node)
-        print('New parent = ', new_parent)
+        print('New parent =', new_parent)
 
         ''' Get valid ID for new node then create '''
         new_sub, _ = self.add_node_in_lattice(_id, new_parent, **attr)
@@ -1058,10 +1058,10 @@ class AssemblyManager():
 
         ass = self._mgr[_id]
         leaves = ass.leaves
-        print('Leaves: ', leaves)
+        print('Leaves:', leaves)
 
         if node not in leaves:
-            print('ID of item to flatten = ', node)
+            print('ID of item to flatten =', node)
         else:
             print('Cannot flatten: item is a leaf node/irreducible part\n')
             return
@@ -1073,9 +1073,9 @@ class AssemblyManager():
         ''' Get all children of item '''
         ch = nx.descendants(ass, node)
         ch_parts = [el for el in ch if el in leaves]
-        print('Children parts = ', ch_parts)
+        print('Children parts =', ch_parts)
         ch_ass = [el for el in ch if not el in leaves]
-        print('Children assemblies = ', ch_ass)
+        print('Children assemblies =', ch_ass)
 
         ''' Move all children that are indivisible parts '''
         for child in ch_parts:
@@ -1097,7 +1097,7 @@ class AssemblyManager():
         leaves = ass.leaves
 
         if node in leaves:
-            print('ID of item to disaggregate = ', node)
+            print('ID of item to disaggregate =', node)
         else:
             print('Cannot disaggregate: item is not a leaf node/irreducible part\n')
             return
@@ -1121,7 +1121,7 @@ class AssemblyManager():
         leaves = ass.leaves
 
         if not node in leaves:
-            print('ID of item to aggregate = ', node)
+            print('ID of item to aggregate =', node)
         else:
             print('Cannot aggregate: item is a leaf node/irreducible part\n')
             return
@@ -1133,11 +1133,11 @@ class AssemblyManager():
         ''' Get children of node and remove '''
         removed_nodes = []
         ch = nx.descendants(ass, node)
-        print('Children aggregated: ', ch)
+        print('Children aggregated:', ch)
         for child in ch:
             try:
                 self.remove_node_in_lattice(_id, child)
-                print('Removed node ', child)
+                print('Removed node', child)
                 removed_nodes.append(child)
             except:
                 print('Could not delete node')
@@ -1153,9 +1153,9 @@ class AssemblyManager():
         ass = self._mgr[_id]
         ''' Remove/add then return affected nodes and edges in target assembly '''
         redundant_nodes, removed_edges, added_edges = ass.remove_redundants()
-        print('Nodes to remove: ', redundant_nodes)
-        print('Edges to remove: ', removed_edges)
-        print('Edges to add: ', added_edges)
+        print('Nodes to remove:', redundant_nodes)
+        print('Edges to remove:', removed_edges)
+        print('Edges to add:', added_edges)
 
         ''' Find corresponding nodes in lattice '''
         redundant_node_map = {node:self.get_master_node(_id, node) for node in redundant_nodes}
@@ -1196,7 +1196,7 @@ class AssemblyManager():
             ''' Ignore edges connected to already-deleted nodes '''
             if u and v:
                 edge_dict[edge] = (u,v)
-                print('Assembly edge: ', edge)
+                print('Assembly edge:', edge)
                 print('Lattice edge:', u,v)
 
         ''' Delete/update all removed edges in lattice '''
@@ -1246,7 +1246,7 @@ class AssemblyManager():
 
         ''' Some basic checks '''
         if id1 not in self._mgr:
-            print('ID: ', id1)
+            print('ID:', id1)
             print('Assembly not in manager; returning False')
             return
 
@@ -1284,7 +1284,7 @@ class AssemblyManager():
 
         ''' Some basic checks '''
         if id2 not in self._mgr:
-            print('ID: ', id2)
+            print('ID:', id2)
             print('Assembly not in manager; returning')
             return
 
@@ -1305,14 +1305,14 @@ class AssemblyManager():
         tau2 = [el for el in a2.nodes if el not in mu2]
 
 
-        print('Matches to add to lattice: ')
+        print('Matches to add to lattice:')
         if 'field' in kwargs:
             f = kwargs['field']
         else:
             f = self.MATCHING_FIELD_DEFAULT_2
         # for k,v in matches.items():
         for k,v in matches:
-            print('a1 node: ', k, a1.nodes[k][f], 'a2 node: ', v, a2.nodes[v][f])
+            print('a1 node:', k, a1.nodes[k][f], 'a2 node:', v, a2.nodes[v][f])
 
         '''
             NODES
@@ -1366,7 +1366,7 @@ class AssemblyManager():
         #     return False
 
         if _id not in self._assemblies_in_lattice:
-            print('ID: ', _id)
+            print('ID:', _id)
             print('Cannot remove assembly from lattice list as not present')
             return False
 
@@ -1442,7 +1442,7 @@ class AssemblyManager():
                 print('Found edge, duplicating...')
                 edge_dict[id2] = edge_dict[id1]
 
-        print('Duplicated assembly ', id1, ' in lattice; assembly ', id2, 'now present')
+        print('Duplicated assembly', id1, ' in lattice; assembly', id2, 'now present')
         print('Nodes, edges:')
         for node in self._lattice.nodes:
             print(self._lattice.nodes[node])
@@ -1477,10 +1477,10 @@ class AssemblyManager():
         Matched, unmatched and non-matches pairs passed from one stage to next
         Stages differ in terms of:  (a) Metrics used for comparison (via weight vectors)
                                     (b) Whether blocking or matching '''
-    def matching_strategy(self, id1, id2, nodes1 = None,
-                                          nodes2 = None,
-                                          stages = None,
-                                          match_subs = False,
+    def matching_strategy(self, id1, id2, nodes1=None,
+                                          nodes2=None,
+                                          stages=None,
+                                          match_subs=False,
                                           *args,
                                           **kwargs):
 
@@ -1529,9 +1529,10 @@ class AssemblyManager():
         ''' 04/02/22 For pickling '''
         inputs = (id1, id2, nodes1, nodes2, a1.step_filename, a2.step_filename, stages)
 
+        ''' 03/04/23 To compile dict of scores by node IDs '''
+        scores_dict = {}
 
-
-        print('\n### Starting matching strategy with ', len(stages), ' stages... ###\n')
+        print('\n### Starting matching strategy with', len(stages), ' stage(s)... ###\n')
 
         ''' Initiate node lists, which are modified throughout the matching process
             and from which matches and non-matches can be derived at any point;
@@ -1576,13 +1577,13 @@ class AssemblyManager():
             else:
                 ''' Do blocking sub-stage here and return list of blocks '''
                 blocking_method = self.MATCHING_STRATEGY_METHODS[blocking_method]
-                print('Running ', blocking_method.__name__,
-                      '\n with assembly IDs ', id1, id2,
-                      '\n node lists ', tau1, tau2,
-                      '\n and kwargs: ', blocking_kwargs)
+                print('Running blocking method:', blocking_method.__name__,
+                      '\n with assembly IDs', id1, id2,
+                      '\n node lists', tau1, tau2,
+                      '\n and kwargs:', blocking_kwargs)
                 blocks = blocking_method(id1, id2, tau1, tau2, **blocking_kwargs)
 
-            print('Blocks: ', blocks)
+            print('Blocks:', blocks)
 
             ''' Set up matching sub-stage '''
             matches = set()
@@ -1597,21 +1598,34 @@ class AssemblyManager():
                 matching_method = self.MATCHING_STRATEGY_METHODS[matching_method]
                 for j, (block_k, block_v) in enumerate(blocks.items()):
                     ''' Match within each block '''
-                    print('Running ', matching_method.__name__,
-                          '\n with assembly IDs ', id1, id2,
-                          '\n in block with node lists ', block_v[0], block_v[1],
-                          '\n and kwargs: ', matching_kwargs)
+                    print('Running matching method:', matching_method.__name__,
+                          '\n with assembly IDs', id1, id2,
+                          '\n in block with node lists', block_v[0], block_v[1],
+                          '\n and kwargs:', matching_kwargs)
                     if block_v[0] and block_v[1]:
-                        matches_in_block, non_matches_in_block = matching_method(id1, id2, block_v[0], block_v[1], **matching_kwargs)[0:2]
+                        n1,n2 = list(block_v[0]),list(block_v[1])
+                        # print('n1,n2:', n1,n2)
+                        matches_in_block, excluded_in_block, scores_in_block = matching_method(id1, id2, n1, n2, **matching_kwargs)
+
+                        ''' 03/04/23 Translate scores to dict and append to dict '''
+                        ids_zip = [(a,b) for a in n1 for b in n2]
+                        ''' Option 1. Output just total scores '''
+                        # scores_total = scores_in_block[-1]
+                        # scores_to_update = {pair:scores_total[n1.index(pair[0])][n2.index(pair[1])] for pair in ids_zip}
+                        ''' Option 2. Output all scores with indices for each '''
+                        scores_to_update = {pair:{s:score[n1.index(pair[0])][n2.index(pair[1])] for s,score in enumerate(scores_in_block)} for pair in ids_zip}
+                        scores_dict.update(scores_to_update)
+
                         print('Matches in block {} of {} and stage {} of {}:\n'.format(
-                            j+1, len(blocks), i+1, len(stages)), matches_in_block)
+                            j+1, len(blocks), i+1, len(stages)),
+                            matches_in_block)
 
                         ''' Update set of matches within current stage '''
-                        print('Matches: ', matches)
-                        print('Matches in block: ', matches_in_block)
+                        print('Matches:', matches)
+                        print('Matches in block:', matches_in_block)
                         matches = matches | set(matches_in_block)
                     else:
-                        print('No nodes found in one half of block; not proceeding with matching...')
+                        print('No nodes found in at least one half of block; not proceeding with matching...')
 
             '''
             UPDATE GLOBAL MATCHES ETC.
@@ -1619,8 +1633,8 @@ class AssemblyManager():
 
             '''Add matches within stage (matches) to master set/lists of matches (mu) and unmatches (tau) '''
             mu = matches | mu
-            print('Matches: ', matches)
-            print('mu:      ', mu)
+            print('Matches:', matches)
+            print('mu:     ', mu)
             # ''' Remove matches from unmatched sets '''
             # nu = nu - mu
 
@@ -1654,8 +1668,8 @@ class AssemblyManager():
 
             '''Add matches within stage (matches) to master set/lists of matches (mu) and unmatches (tau) '''
             mu = matches | mu
-            print('Matches: ', matches)
-            print('mu:      ', mu)
+            print('Matches:', matches)
+            print('mu:     ', mu)
             # ''' Remove matches from unmatched sets '''
             # nu = nu - mu
 
@@ -1677,7 +1691,7 @@ class AssemblyManager():
         outputs = (mu, mu1, mu2, tau1, tau2)
 
         # return mu, mu1, mu2
-        return inputs, outputs
+        return inputs, outputs, scores_dict
 
 
     # ''' HR 19/01/22
@@ -1705,6 +1719,103 @@ class AssemblyManager():
     #     return matches
 
 
+    ''' HR 15/12/21 General-purpose method for returning set of optimal matches from specific block '''
+
+    def match_block(self, id1, id2, nodes1=None,
+                    nodes2=None,
+                    weights=None,
+                    structure_weights=None,
+                    tol=None,
+                    default_value=None,
+                    C1=None,
+                    C2=None,
+                    scale=None):
+        ''' Returns:
+                - Set of matched node pairs (matches = m1 x m2)
+                - Lists of nodes in each assembly in pairs (m1, m2)
+                - Matrix of all scores (scores)
+                - Indices of elements in matrix corresponding to optimal scores (indices)
+                - Best (i.e. optimal) total score (best) '''
+
+        ''' Check for/set defaults '''
+        if not nodes1:
+            a1 = self._mgr[id1]
+            nodes1 = [node for node in a1.nodes]
+        else:
+            nodes1 = list(nodes1)
+        if not nodes2:
+            a2 = self._mgr[id2]
+            nodes2 = [node for node in a2.nodes]
+        else:
+            nodes2 = list(nodes2)
+
+        if not weights:
+            weights = self.MATCHING_WEIGHTS_DEFAULT
+        if not structure_weights:
+            structure_weights = self.MATCHING_WEIGHTS_STRUCTURE_DEFAULT
+        if not tol:
+            tol = self.MATCHING_TOLERANCE_DEFAULT
+        if not default_value:
+            default_value = self.MATCHING_SCORE_DEFAULT
+        if not C1:
+            C1 = self.MATCHING_C1_DEFAULT
+        if not C2:
+            C2 = self.MATCHING_C2_DEFAULT
+        if not scale:
+            scale = self.MATCHING_BB_SCALE_DEFAULT
+
+        ''' Get all similarity scores:
+            1. Fill with default values
+            (must define arrays as floats here,
+             else numpy assumes int and updates values wrongly) '''
+        np_kwargs = {'fill_value': default_value, 'dtype': 'float'}
+        scores_name = np.full((len(nodes1), len(nodes2)), **np_kwargs)
+        scores_str = np.full((len(nodes1), len(nodes2)), **np_kwargs)
+        scores_size = np.full((len(nodes1), len(nodes2)), **np_kwargs)
+        scores_sh = np.full((len(nodes1), len(nodes2)), **np_kwargs)
+
+        '''
+        HR 15/03/22 N.B. ARE WEIGHTS APPLIED TWICE HERE?
+        i.e. once when calling get_sims and again when doing np.average?
+        '''
+
+        ''' 2. Populate with scores '''
+        for i, n1 in enumerate(nodes1):
+            for j, n2 in enumerate(nodes2):
+                sim_name, sim_str, sim_size, sim_sh = self.get_sims(id1, id2, n1, n2, weights=weights,
+                                                                    structure_weights=structure_weights,
+                                                                    C1=C1,
+                                                                    C2=C2,
+                                                                    scale=scale)[1]
+                # print('Nodes:', n1,n2, '\nSims:', sim_name, sim_str, sim_size, sim_sh)
+                scores_name[i, j] = sim_name
+                scores_str[i, j] = sim_str
+                scores_size[i, j] = sim_size
+                scores_sh[i, j] = sim_sh
+
+        ''' Multiply by weights to get aggregate scores...
+            (alternative is to scale by weights within "get_sims" method, then set weights to 1 here) '''
+        scores = np.average([scores_name, scores_str, scores_size, scores_sh], axis=0, weights=weights)
+
+        ''' ...then compute indices in array of globally optimal matches via Hungarian algorithm... '''
+        rows, cols, best = hungalg.get_optimal_values(scores)
+        pairs = list(zip(rows, cols))
+        # print('Pairs by index:', pairs)
+        # print('Nodes1:', nodes1)
+        # print('Nodes2:', nodes2)
+
+        ''' ...find any pairs with scores below the threshold ("tol")... '''
+        excluded = [pair for pair in pairs if scores[pair] < tol]
+
+        ''' ...and convert to matches in terms of node IDs '''
+        matches = [(nodes1[pair[0]], nodes2[pair[1]]) for pair in pairs]
+        excluded = [(nodes1[pair[0]], nodes2[pair[1]]) for pair in pairs if scores[pair] < tol]
+
+        scores_out = (scores_name, scores_str, scores_size, scores_sh, scores)
+
+        return matches, excluded, scores_out
+
+
     '''
     HR 27/01/22
     To group items by name including inexactly via Levenshtein distance
@@ -1714,12 +1825,12 @@ class AssemblyManager():
         3. Cannot deal with non-product names (e.g. if default names present for "SOLID" or other shape types) or empty name fields
     Correctly groups parking trolley items if text_tol = 1e-2; this is small b/c some very long names, e.g. beginning with "Colson"
     '''
-    def block_by_name(self, id1, id2, nodes1 = None,
-                                      nodes2 = None,
-                                      text_tol = None,
-                                      suffixes = None,
-                                      field = None,
-                                      field2 = None):
+    def block_by_name(self, id1, id2, nodes1=None,
+                                      nodes2=None,
+                                      text_tol=None,
+                                      suffixes=None,
+                                      field=None,
+                                      field2=None):
 
         a1 = self._mgr[id1]
         a2 = self._mgr[id2]
@@ -1745,13 +1856,13 @@ class AssemblyManager():
         for n1 in nodes1:
             text = a1.nodes[n1][field]
             if not text:
-                print('No name found at node ', n1, '; defaulting to "', str(field2), '"')
+                print('No name found at node', n1, '; defaulting to "', str(field2), '"')
                 text = a1.nodes[n1][field2]
                 # continue
-            print('Name: ', text)
+            print('Name:', text)
             ''' Remove suffixes '''
             if suffixes:
-                # print(' TEXT: ', text)
+                # print(' TEXT:', text)
                 text = remove_suffixes(text, suffixes = suffixes)
             if text in groups:
                 # print('Adding to existing group (exact match)')
@@ -1762,23 +1873,23 @@ class AssemblyManager():
                 sim = 1 - lev_dist/max(len(text), len(k))
 
                 if sim > 1-text_tol:
-                    # print('Adding to existing group (inexact match), score = ', sim)
+                    # print('Adding to existing group (inexact match), score =', sim)
                     groups[k][0].append(n1)
                     grouped = True
                     break
             if grouped:
                 grouped = False
                 continue
-            print('Creating new group: ', text)
+            print('Creating new group:', text)
             groups[text] = ([n1], [])
 
         for n2 in nodes2:
             text = a2.nodes[n2][field]
             if not text:
-                print('No name found at node ', n2, '; defaulting to "', str(field2), '"')
+                print('No name found at node', n2, '; defaulting to "', str(field2), '"')
                 text = a2.nodes[n2][field2]
                 # continue
-            print('Name found: ', text)
+            print('Name found:', text)
             ''' Remove suffixes '''
             if suffixes:
                 text = remove_suffixes(text, suffixes = suffixes)
@@ -1791,14 +1902,14 @@ class AssemblyManager():
                 sim = 1 - lev_dist/max(len(text), len(k))
 
                 if sim > 1-text_tol:
-                    print('Adding to existing group (inexact match), score = ', sim)
+                    print('Adding to existing group (inexact match), score =', sim)
                     groups[k][1].append(n2)
                     grouped = True
                     break
             if grouped:
                 grouped = False
                 continue
-            # print('Creating new group: ', text)
+            # print('Creating new group:', text)
             groups[text] = ([], [n2])
 
         return groups
@@ -1809,10 +1920,10 @@ class AssemblyManager():
     To group items by bounding box (BB) dimensions (specifically sum of aspect ratios)
     Groups if (a) exact match or (b) inexact match (within tolerance) according to sim score
     '''
-    def block_by_bb(self, id1, id2, nodes1 = None,
-                                    nodes2 = None,
-                                    bb_tol = None,
-                                    group_tol = None):
+    def block_by_bb(self, id1, id2, nodes1=None,
+                                    nodes2=None,
+                                    bb_tol=None,
+                                    group_tol=None):
 
         ''' Check for/set defaults '''
         if not nodes1:
@@ -1896,10 +2007,10 @@ class AssemblyManager():
     To group items by volume ("mass" in Open Cascade, with density = 1 by default)
     Groups if (a) exact match or (b) inexact match (within tolerance) according to sim score
     '''
-    def block_by_mass(self, id1, id2, nodes1 = None,
-                                      nodes2 = None,
-                                      mass_tol = None,
-                                      group_tol = None):
+    def block_by_mass(self, id1, id2, nodes1=None,
+                                      nodes2=None,
+                                      mass_tol=None,
+                                      group_tol=None):
 
         ''' Check for/set defaults '''
         if not nodes1:
@@ -1979,13 +2090,13 @@ class AssemblyManager():
     ''' HR 03/08/22 Added option to compute mass-/volume- and distance-based similarities as alternative to BB '''
     ''' HR 10/12/21 To grab all similarity scores
         For testing integration with PartFind '''
-    def get_sims(self, id1, id2, node1, node2, field = None,
-                                               weights = None,
-                                               structure_weights = None,
-                                               C1 = None,
-                                               C2 = None,
-                                               scale_bb = None,
-                                               by_mass = True,
+    def get_sims(self, id1, id2, node1, node2, field=None,
+                                               weights=None,
+                                               structure_weights=None,
+                                               C1=None,
+                                               C2=None,
+                                               scale_bb=None,
+                                               by_mass=True,
                                                *args,
                                                **kwargs):
 
@@ -2010,7 +2121,7 @@ class AssemblyManager():
             sim_name = self.similarity_strings(id1, id2, node1, node2, field = field)[1]
         else:
             sim_name = 0
-        # print('Name sim: ', sim_name)
+        # print('Name sim:', sim_name)
 
         ''' Get local assembly structure-based score '''
         if weights[1] > 0:
@@ -2018,29 +2129,29 @@ class AssemblyManager():
             # sim_str = sum(x*y for x,y in zip(sims, structure_weights))/sum(structure_weights)
         else:
             sim_str = 0
-        # print('Struct sim: ', sim_str)
+        # print('Struct sim:', sim_str)
 
         ''' Get size-based score '''
         if by_mass:
             if weights[2] > 0:
-                print('Getting mass/distance-based score')
+                # print('Getting mass/distance-based score')
                 sim_size = self.similarity_mass(id1, id2, node1, node2, *args, **kwargs)
             else:
                 sim_size = 0
         else:
             if weights[2] > 0:
-                print('Getting BB-based score')
+                # print('Getting BB-based score')
                 sim_size = self.similarity_bb(id1, id2, node1, node2, scale = scale_bb)
             else:
                 sim_size = 0
-        # print('Size sim: ', sim_size)
+        # print('Size sim:', sim_size)
 
         ''' Get shape-based score '''
         if weights[3] > 0:
             sim_sh = self.similarity_shape(id1, id2, node1, node2)
         else:
             sim_sh = 0
-        # print('Shape sim: ', sim_sh)
+        # print('Shape sim:', sim_sh)
 
         sims = (sim_name, sim_str, sim_size, sim_sh)
         sim_total = sum([s*w for s,w in zip(sims,weights)])/sum(weights)
@@ -2050,10 +2161,10 @@ class AssemblyManager():
 
     ''' HR 10/21/12 To get all local assembly structure-based similarity scores
         All copied/adapted from older "node_sim" method below '''
-    def similarity_structure(self, id1, id2, node1, node2, structure_weights = None,
-                                                           C1 = None,
-                                                           C2 = None,
-                                                           field = None):
+    def similarity_structure(self, id1, id2, node1, node2, structure_weights=None,
+                                                           C1=None,
+                                                           C2=None,
+                                                           field=None):
 
         ''' Check for/set defaults '''
         if not structure_weights:
@@ -2172,18 +2283,18 @@ class AssemblyManager():
             # print('No name found; returning None')
             return None
         folder = remove_suffixes(assembly.step_filename)
-        # print('Folder, name: ', folder, name)
+        # print('Folder, name:', folder, name)
 
         file = os.path.join(save_path, folder, name)
-        # print('File:\n ', file)
+        # print('File:\n', file)
 
         dimsfile = file + '.dims'
         got_dims = False
 
         ''' Create pickled dims if not already present '''
         if not os.path.isfile(dimsfile):
-            print('Pickled aspect ratio (AR) data not found; getting shape and computing dimensions of bounding box (BB)...')
-            # print('Retrieving shape...\n ')
+            # print('Pickled aspect ratio (AR) data not found; getting shape and computing dimensions of bounding box (BB)...')
+            # print('Retrieving shape...\n')
             shape = node_dict['shape_loc'][0]
             if not shape:
                 # print('Shape not found; returning None')
@@ -2192,7 +2303,7 @@ class AssemblyManager():
             if not os.path.isdir(folder):
                 # print('Folder not present; creating...')
                 os.mkdir(folder)
-            # print('Computing and pickling AR data...\n ', dimsfile)
+            # print('Computing and pickling AR data...\n', dimsfile)
             dims = get_dimensions(shape)
             got_dims = True
             dims_writer = open(dimsfile,"wb")
@@ -2201,7 +2312,7 @@ class AssemblyManager():
 
         ''' Load pickled BB data '''
         if not got_dims:
-            # print('Opening pickled BB data...\n ', arfile)
+            # print('Opening pickled BB data...\n', arfile)
             dims_loader = open(dimsfile,"rb")
             dims = pickle.load(dims_loader)
 
@@ -2210,8 +2321,8 @@ class AssemblyManager():
 
     ''' HR 28/07/22 To get mass and centre of mass info
                     Some duplication with "get_dims", probably acceptable '''
-    def get_mass_data(self, assembly_id, node, field = None,
-                                               save_path = None):
+    def get_mass_data(self, assembly_id, node, field=None,
+                                               save_path=None):
 
         ''' Check for/set defaults '''
         if not field:
@@ -2223,30 +2334,30 @@ class AssemblyManager():
         node_dict = assembly.nodes[node]
         name = node_dict[field]
         if not name:
-            print('No name found; returning None')
+            # print('No name found; returning None')
             return None
         folder = remove_suffixes(assembly.step_filename)
-        # print('Folder, name: ', folder, name)
+        # print('Folder, name:', folder, name)
 
         file = os.path.join(save_path, folder, name)
-        print('File:\n ', file)
+        # print('File:\n', file)
 
         massfile = file + '.mass'
         got_mass = False
 
         ''' Create pickled data if not already present '''
         if not os.path.isfile(massfile):
-            print('Pickled volume data not found; getting volume data...')
-            # print('Retrieving shape...\n ')
+            # print('Pickled volume data not found; getting volume data...')
+            # print('Retrieving shape...\n')
             shape = node_dict['shape_loc'][0]
             if not shape:
-                print('Shape not found; returning None')
+                # print('Shape not found; returning None')
                 return None
             ''' Create folder if not present '''
             if not os.path.isdir(folder):
-                print('Folder not present; creating...')
+                # print('Folder not present; creating...')
                 os.mkdir(folder)
-            print('Computing and pickling volume data...\n ', massfile)
+            # print('Computing and pickling volume data...\n', massfile)
             mass = get_mass_properties(shape)
             got_mass = True
             mass_writer = open(massfile,"wb")
@@ -2255,7 +2366,7 @@ class AssemblyManager():
 
         ''' Load pickled volume data '''
         if not got_mass:
-            print('Opening pickled volume data...\n ', massfile)
+            # print('Opening pickled volume data...\n', massfile)
             mass_loader = open(massfile,"rb")
             mass = pickle.load(mass_loader)
 
@@ -2265,8 +2376,8 @@ class AssemblyManager():
     ''' HR 31/01/22
         To replace older method by abstracting more: just pass shape and retrieve ARs
         Incorporates (a) retrieval from file and/or (b) pickling to file if necessary '''
-    def similarity_bb(self, id1, id2, node1, node2, field = None,
-                                                    scale = None,
+    def similarity_bb(self, id1, id2, node1, node2, field=None,
+                                                    scale=None,
                                                     *args,
                                                     **kwargs):
 
@@ -2311,8 +2422,8 @@ class AssemblyManager():
         Calculate similarity based on:
             - Volume by default (centre_of_mass = False), else
             - Centre of mass (centre_of_mass = True) '''
-    def similarity_mass(self, id1, id2, node1, node2, field = None,
-                                                      centre_of_mass = False,
+    def similarity_mass(self, id1, id2, node1, node2, field=None,
+                                                      centre_of_mass=False,
                                                       *args,
                                                       **kwargs):
 
@@ -2323,38 +2434,38 @@ class AssemblyManager():
         try:
             com1, mass1 = self.get_mass_data(id1, node1)
         except:
-            print('Could not get mass data: exception')
+            # print('Could not get mass data: exception')
             com1, mass1 = None, None
         try:
             com2, mass2 = self.get_mass_data(id2, node2)
         except:
-            print('Could not get mass data: exception')
+            # print('Could not get mass data: exception')
             com2, mass2 = None, None
 
         ''' Calculate similarity '''
         if not centre_of_mass:
             if mass1 and mass2:
                 sim_mass = get_mass_score(mass1, mass2, *args, **kwargs)
-                print('Returning mass-based similarity...', sim_mass)
+                # print('Returning mass-based similarity...', sim_mass)
                 return sim_mass
             else:
-                print('Exception; returning default score...')
+                # print('Exception; returning default score...')
                 return self.MATCHING_SCORE_DEFAULT
         else:
             if com1 and com2:
                 sim_com = get_distance_score(com1, com2, *args, **kwargs)
-                print('Returning distance-based similarity...', sim_com)
+                # print('Returning distance-based similarity...', sim_com)
                 return sim_com
             else:
-                print('Exception; returning default score...')
+                # print('Exception; returning default score...')
                 return self.MATCHING_SCORE_DEFAULT
 
 
     ''' HR 31/01/22 To automate/abstract all shape-thing retrieval,
         where a shape thing is shape representation used in PartFind
         (graph in older PF versions, vector in newer versions) '''
-    def get_shape_thing(self, assembly_id, node, field = None,
-                                                 save_path = None):
+    def get_shape_thing(self, assembly_id, node, field=None,
+                                                 save_path=None):
 
         ''' Check for/set defaults '''
         if not field:
@@ -2368,7 +2479,7 @@ class AssemblyManager():
         folder = remove_suffixes(assembly.step_filename)
 
         file = os.path.join(save_path, folder, name)
-        # print('File:\n ', file)
+        # print('File:\n', file)
 
         pickle_file = file + '.pickle'
         thing_in_memory = False
@@ -2388,15 +2499,15 @@ class AssemblyManager():
                 if not os.path.isdir(folder):
                     # print('Folder not present; creating...')
                     os.mkdir(folder)
-                # print('shape, full file path:\n ', shape, step_file)
+                # print('shape, full file path:\n', shape, step_file)
                 DataExchange.write_step_file(shape, step_file)
-            # print('Creating graph from STEP file...\n ', step_file)
+            # print('Creating graph from STEP file...\n', step_file)
             try:
                 thing = load_from_step(step_file)
             except:
                 # print('Could not create graph; returning None')
                 return None
-            # print('Pickling graph...\n ', pickle_file)
+            # print('Pickling graph...\n', pickle_file)
             pickle_writer = open(pickle_file,"wb")
             pickle.dump(thing, pickle_writer)
             pickle_writer.close()
@@ -2404,14 +2515,14 @@ class AssemblyManager():
 
         ''' Load pickled thing if not already in memory '''
         if not thing_in_memory:
-            # print('Opening pickled shape thing...\n ', pickle_file)
+            # print('Opening pickled shape thing...\n', pickle_file)
             pickle_loader = open(pickle_file,"rb")
             thing = pickle.load(pickle_loader)
 
         return thing
 
 
-    def similarity_shape(self, id1, id2, node1, node2, field = None):
+    def similarity_shape(self, id1, id2, node1, node2, field=None):
 
         ''' Check for/set defaults '''
         if not field:
@@ -2432,14 +2543,14 @@ class AssemblyManager():
         ''' Calculate similarity '''
         if thing1 and thing2:
             sim_sh = self.pc.model.test_pair(thing1, thing2)
-            # print("Similarity score:", sim_sh)
+            # print("Shape similarity score:", sim_sh)
             return sim_sh
         else:
             return self.MATCHING_SCORE_DEFAULT
 
 
     ''' HR June 21 Must refactor this, moved from StepParse class method '''
-    def similarity_strings(self, id1, id2, node1, node2, field = None):
+    def similarity_strings(self, id1, id2, node1, node2, field=None):
 
         ''' Check for/set defaults '''
         if not field:
@@ -2467,102 +2578,6 @@ class AssemblyManager():
         return lev_dist, sim
 
 
-    ''' HR 15/12/21 General-purpose method for returning set of optimal matches from specific block '''
-    def match_block(self, id1, id2, nodes1 = None,
-                                    nodes2 = None,
-                                    weights = None,
-                                    structure_weights = None,
-                                    tol = None,
-                                    default_value = None,
-                                    C1 = None,
-                                    C2 = None,
-                                    scale = None):
-        ''' Returns:
-                - Set of matched node pairs (matches = m1 x m2)
-                - Lists of nodes in each assembly in pairs (m1, m2)
-                - Matrix of all scores (scores)
-                - Indices of elements in matrix corresponding to optimal scores (indices)
-                - Best (i.e. optimal) total score (best) '''
-
-        ''' Check for/set defaults '''
-        if not nodes1:
-            a1 = self._mgr[id1]
-            nodes1 = [node for node in a1.nodes]
-        else:
-            nodes1 = list(nodes1)
-        if not nodes2:
-            a2 = self._mgr[id2]
-            nodes2 = [node for node in a2.nodes]
-        else:
-            nodes2 = list(nodes2)
-
-        if not weights:
-            weights = self.MATCHING_WEIGHTS_DEFAULT
-        if not structure_weights:
-            structure_weights = self.MATCHING_WEIGHTS_STRUCTURE_DEFAULT
-        if not tol:
-            tol = self.MATCHING_TOLERANCE_DEFAULT
-        if not default_value:
-            default_value = self.MATCHING_SCORE_DEFAULT
-        if not C1:
-            C1 = self.MATCHING_C1_DEFAULT
-        if not C2:
-            C2 = self.MATCHING_C2_DEFAULT
-        if not scale:
-            scale = self.MATCHING_BB_SCALE_DEFAULT
-
-        ''' Get all similarity scores:
-            1. Fill with default values
-            (must define arrays as floats here,
-             else numpy assumes int and updates values wrongly) '''
-        np_kwargs = {'fill_value': default_value, 'dtype': 'float'}
-        scores_name = np.full((len(nodes1), len(nodes2)), **np_kwargs)
-        scores_str = np.full((len(nodes1), len(nodes2)), **np_kwargs)
-        scores_size = np.full((len(nodes1), len(nodes2)), **np_kwargs)
-        scores_sh = np.full((len(nodes1), len(nodes2)), **np_kwargs)
-
-        '''
-        HR 15/03/22 N.B. ARE WEIGHTS APPLIED TWICE HERE?
-        i.e. once when calling get_sims and again when doing np.average?
-        '''
-
-        ''' 2. Populate with scores '''
-        for i,n1 in enumerate(nodes1):
-            for j,n2 in enumerate(nodes2):
-                sim_name, sim_str, sim_size, sim_sh = self.get_sims(id1, id2, n1, n2, weights = weights,
-                                                                                      structure_weights = structure_weights,
-                                                                                      C1 = C1,
-                                                                                      C2 = C2,
-                                                                                      scale = scale)[1]
-                # print('Nodes:', n1,n2, '\nSims: ', sim_name, sim_str, sim_size, sim_sh)
-                scores_name[i,j] = sim_name
-                scores_str[i,j] = sim_str
-                scores_size[i,j] = sim_size
-                scores_sh[i,j] = sim_sh
-
-        ''' Multiply by weights to get aggregate scores...
-            (alternative is to scale by weights within "get_sims" method, then set weights to 1 here) '''
-        scores = np.average([scores_name, scores_str, scores_size, scores_sh], axis = 0, weights = weights)
-
-        ''' ...then compute indices in array of globally optimal matches via Hungarian algorithm... '''
-        rows, cols, best = hungalg.get_optimal_values(scores)
-        pairs = list(zip(rows, cols))
-        # print('Pairs by index: ', pairs)
-        # print('Nodes1: ', nodes1)
-        # print('Nodes2: ', nodes2)
-
-        ''' ...find any pairs with scores below the threshold ("tol")... '''
-        excluded = [pair for pair in pairs if scores[pair] < tol]
-
-        ''' ...and convert to matches in terms of node IDs '''
-        matches = [(nodes1[pair[0]], nodes2[pair[1]]) for pair in pairs]
-        excluded = [(nodes1[pair[0]], nodes2[pair[1]]) for pair in pairs if scores[pair] < tol]
-
-        scores_out = (scores_name, scores_str, scores_size, scores_sh, scores)
-
-        return matches, excluded, scores_out
-
-
     ''' HR 15/06/22 TO DO
                     Rewrite to match sub-assemblies via lattice,
                     rather than through assembly 1, as otherwise may miss some,
@@ -2576,8 +2591,8 @@ class AssemblyManager():
                     - id1, id2: IDs of assemblies whose nodes are being compared
                     - leaf_matches: IDs of leaves in each assembly that have already been matched
                     - subs1, subs2: sub-assemblies in each assembly to be compared '''
-    def match_by_comb(self, id1, id2, leaf_matches, subs1 = None,
-                                                    subs2 = None):
+    def match_by_comb(self, id1, id2, leaf_matches, subs1=None,
+                                                    subs2=None):
         ass1 = self._mgr[id1]
         ass2 = self._mgr[id2]
 
@@ -2614,11 +2629,11 @@ class AssemblyManager():
             ''' Get corresponding combinatorial ID of sub in second assembly... '''
             c1_mapped = {m_dict[el] for el in c1}
             ''' ...then see if it exists '''
-            print('Mapped ', c1, ' to ', c1_mapped, '; looking through second assembly')
+            print('Mapped', c1, 'to', c1_mapped, '; looking through second assembly')
             for s2 in subs2:
                 c2 = leaves_in2[s2]
                 if c1_mapped == c2:
-                    print('Found match! ', c1, c2)
+                    print('Found match!', c1, c2)
                     subs_matches.add((s1,s2))
                     continue
 
@@ -2691,13 +2706,13 @@ class AssemblyManager():
         self.axes.axes.get_yaxis().set_ticks([])
 
 
-    def update_colours_selected(self, active, selected = [],
-                                              to_select = [],
-                                              to_unselect = [],
-                                              called_by = None):
+    def update_colours_selected(self, active, selected=[],
+                                              to_select=[],
+                                              to_unselect=[],
+                                              called_by=None):
 
         print('Running "update_colours_selected"')
-        print('Called by: ', called_by)
+        print('Called by:', called_by)
 
         latt = self._lattice
         leaves = latt.leaves
@@ -2705,8 +2720,8 @@ class AssemblyManager():
         ''' Get active elements '''
         active_nodes = [node for node in latt.nodes if active in latt.nodes[node]]
         active_edges = [edge for edge in latt.edges if active in latt.edges[edge]]
-        print('Active nodes: ', active_nodes)
-        print('Active edges: ', active_edges)
+        print('Active nodes:', active_nodes)
+        print('Active edges:', active_edges)
 
         selected = [self.get_master_node(active, node) for node in selected]
         selected = [node for node in selected if node in active_nodes]
@@ -2721,9 +2736,9 @@ class AssemblyManager():
             to_unselect = [node for node in latt.nodes if node not in to_select]
         to_unselect = [node for node in to_unselect if active in latt.nodes[node]]
 
-        print('selected: ', selected)
-        print('to_select: ', to_select)
-        print('to_unselect: ', to_unselect)
+        print('selected:', selected)
+        print('to_select:', to_select)
+        print('to_unselect:', to_unselect)
 
         dc = self.dc
         sc = self.sc
@@ -2771,12 +2786,12 @@ class AssemblyManager():
         self.axes.axes.get_yaxis().set_ticks([])
 
 
-    def update_colours_active(self, to_activate = [],
-                                    to_deactivate = [],
-                                    called_by = None):
+    def update_colours_active(self, to_activate=[],
+                                    to_deactivate=[],
+                                    called_by=None):
 
         print('Running "update_colours_active"')
-        print('Called by: ', called_by)
+        print('Called by:', called_by)
 
         latt = self._lattice
         nodes = latt.nodes
@@ -2814,11 +2829,11 @@ class AssemblyManager():
             # Activate
             if any(el in to_activate for el in _dict):
                 latt.edge_dict[(leaf,None)].set_color(dc)
-                # print('Activating leaf edge; node dict: ', _dict)
+                # print('Activating leaf edge; node dict:', _dict)
             # Deactivate
             elif any(el in to_deactivate for el in _dict):
                 latt.edge_dict[(leaf,None)].set_color(ic)
-                # print('Deactivating leaf edge; node dict: ', _dict)
+                # print('Deactivating leaf edge; node dict:', _dict)
 
 
 
@@ -2890,7 +2905,7 @@ class AssemblyManager():
         ''' Starts here: get head info then traverse graph recursively '''
         # try:
         #     head = assembly.head
-        #     print('Found head node: ', head)
+        #     print('Found head node:', head)
         # except:
         #     print('Could not find "head" node explcitly; returning all zero in-degree nodes if more than one, or usual node info if only one')
         #     heads = [node for node in assembly if assembly.in_degree(node) == 0]
@@ -2928,7 +2943,11 @@ class AssemblyManager():
         Keep for now, can reuse for larger "save" functionality later '''
     ''' HR 25/02/21
         Basic XLSX output for whole lattice (i.e. all assemblies) '''
-    def xlsx_write(self, _ids = None, name_field = None, save_file = None, indent = True):
+    def xlsx_write(self,
+                   _ids=None,
+                   name_field=None,
+                   save_file=None,
+                   indent=True):
 
         if not save_file:
             save_file = self.SAVE_FILENAME_DEFAULT
@@ -3195,7 +3214,7 @@ class StepParse(nx.DiGraph):
 
         self.name_root_counter[nm_root] += 1
 
-        print(' Returning screen name: ', nm_full)
+        print(' Returning screen name:', nm_full)
         return nm_full
 
 
@@ -3206,7 +3225,7 @@ class StepParse(nx.DiGraph):
         def get_product_name(line):
             ''' First strip off basic extraneous stuff; this should work universally '''
             line_corr = line.split("PRODUCT")[1].strip().rstrip(";").lstrip("(").strip().split("#")[0].strip().rstrip("(").strip().strip(",").strip()
-            # print('Stripped back text, first stage: ', line_corr)
+            # print('Stripped back text, first stage:', line_corr)
             ''' Next, deal with remaining rightmost field
             #     Fine for all case studies so far, but might not be universal solution; would need to deal with text in field, if present
             #     Note: Currently yields wrong name if text present in rightmost field '''
@@ -3214,42 +3233,42 @@ class StepParse(nx.DiGraph):
             ''' HR 22/11/21
                 Rewritten to allow for text in third field
                 Still assumes no commas in third field, but improvement on previous '''
-            line_corr = ','.join(line_corr.split(",")[:-1])
-            # print('Stripped back text, second stage: ', line_corr)
+            line_corr =','.join(line_corr.split(",")[:-1])
+            # print('Stripped back text, second stage:', line_corr)
 
             chunks = line_corr.split(",")
-            # print('Chunks by comma: ', chunks)
+            # print('Chunks by comma:', chunks)
 
             l = len(chunks)
-            # print('Length: ', l)
+            # print('Length:', l)
 
             if l == 2:
                 ''' If only two chunks, first chunk must be name, even if two empty chunks '''
                 name = chunks[0]
-                # print("Length = 2, name is first chunk: ", name)
+                # print("Length = 2, name is first chunk:", name)
 
             else:
                 if (l % 2) != 0:
                     ''' If l > 2 and odd, last chunk must be empty => name is all chunks except last '''
                     name = ''.join(chunks[:-1])
-                    # print("Length = ", l, " and odd, name is all chunks except last: ", name)
+                    # print("Length =", l, " and odd, name is all chunks except last:", name)
                 else:
                     ''' Last remaining case is that l > 2 and even, for which two possible outcomes '''
                     lh = int(l/2)
-                    # print('Half length = ', lh)
+                    # print('Half length =', lh)
                     ''' Chop text into two halves '''
                     half1 = ','.join(chunks[0:lh]).strip()
                     half2 = ','.join(chunks[lh:]).strip()
-                    # print('Half 1: ', half1)
-                    # print('Half 2: ', half2)
+                    # print('Half 1:', half1)
+                    # print('Half 2:', half2)
                     if half1 == half2:
                         ''' Outcome 1: Both halves the same, i.e. name repeated in two fields '''
                         name = half1
-                        # print("Length > 2 and even and halves match, name is first half: ", name)
+                        # print("Length > 2 and even and halves match, name is first half:", name)
                     else:
                         ''' Outcome 2: Second field empty => name is all chunks except last '''
                         name = ','.join(chunks[:-1])
-                        # print("Length > 2 and even and halves do NOT match, name is all chunks except last: ", name)
+                        # print("Length > 2 and even and halves do NOT match, name is all chunks except last:", name)
 
             ''' HR 01/11/21 Workaround for problem of multiple apostropges being reduced to single one in OCC
                 Address unresolved OCC bug 32421: https://tracker.dev.opencascade.org/view.php?id=32421
@@ -3313,7 +3332,7 @@ class StepParse(nx.DiGraph):
             return
 
         self.step_filename = filename
-        print('Filename (full path): ', filename)
+        print('Filename (full path):', filename)
 
         doc = TDocStd_Document(TCollection_ExtendedString("pythonocc-doc"))
 
@@ -3773,7 +3792,7 @@ class StepParse(nx.DiGraph):
             if self.out_degree(node) == 1:
                 redundants.append(node)
 
-        print('Found redundant nodes: ', redundants)
+        print('Found redundant nodes:', redundants)
         print(' in assembly', self.assembly_id)
         return redundants
 
@@ -3801,8 +3820,8 @@ class StepParse(nx.DiGraph):
     #     ''' ...then remove in separate loop to avoid list changing size during previous loop '''
     #     for node in to_remove:
     #         self.remove_node(node)
-    #         print('Removing node ', node)
-    #     print('  Total redundant nodes removed: ', len(to_remove))
+    #         print('Removing node', node)
+    #     print('  Total redundant nodes removed:', len(to_remove))
 
     #     # print('Removed redundants')
     #     return to_remove
@@ -3851,9 +3870,9 @@ class StepParse(nx.DiGraph):
             redundant_edges.extend(ins + outs)
 
             self.remove_node(node)
-            print('Removing node ', node)
+            print('Removing node', node)
 
-        print('  Total redundant nodes removed: ', len(redundant_nodes))
+        print('  Total redundant nodes removed:', len(redundant_nodes))
 
         edges_after = set(self.edges)
 
@@ -3890,10 +3909,10 @@ class StepParse(nx.DiGraph):
         ''' Get parent of node; return None if parent not present '''
         try:
             parent = [el for el in self.predecessors(node)][-1]
-            # print('Found parent of ', node,': ', parent)
+            # print('Found parent of', node,':', parent)
             return parent
         except:
-            # print('Could not find parent of node ', node, '; returning None')
+            # print('Could not find parent of node', node, '; returning None')
             return None
 
 
@@ -3913,10 +3932,10 @@ class StepParse(nx.DiGraph):
             Best used only when removing redundant (i.e. single-child) subassemblies '''
         try:
             child = [el for el in self.successors(node)][-1]
-            print('Found single/last child of node ', node, ': ', child)
+            print('Found single/last child of node', node, ':', child)
             return child
         except:
-            print('Could not find single/last child of node ', node, '; returning None')
+            print('Could not find single/last child of node', node, '; returning None')
             return None
 
 
@@ -3927,7 +3946,7 @@ class StepParse(nx.DiGraph):
         # print('Leaves and names for assembly ID :', self.assembly_id, '')
         # for leaf in leaves:
         #     try:
-        #         print(' NODE: ', leaf, ', NAME: ', self.nodes[leaf]['screen_name'], '\n')
+        #         print(' NODE:', leaf,', NAME:', self.nodes[leaf]['screen_name'], '\n')
         #     except:
         #         print(' no name\n')
         return leaves
@@ -3973,7 +3992,7 @@ class StepParse(nx.DiGraph):
             leaves_in[leaf] = {leaf}
 
         for sub in subassemblies:
-            # print('sub = ', sub)
+            # print('sub =', sub)
             leaves_in[sub] = nx.descendants(self, sub) - subassemblies
 
         return leaves_in
@@ -4016,7 +4035,7 @@ class StepParse(nx.DiGraph):
         ''' Get number of possible combinations for each level... '''
         leaves = self.leaves
         n = len(leaves)
-        print('\n    Number of leaves: ', n,'\n')
+        print('\n    Number of leaves:', n,'\n')
         ''' ...but only needed for specified nodes '''
         ''' HR 28/10/21 To add option to display all lines, not just populated ones '''
         self.S_p_all = {level:self.get_comb(n,level) for level in range(int(n+1))}
@@ -4065,13 +4084,13 @@ class StepParse(nx.DiGraph):
 
         result = (n+0.5)*np.log(n) - n + np.log(np.sqrt(2*np.pi)) + (1/(12*n)) - (1/(360*n**3)) + (1/(1260*n**5)) - (1/(1680*n**7))
         # result = (n+0.5)*np.log(n) - n + np.log(np.sqrt(2*np.pi)) + (1/(12*n))
-        # print('Log Stirling approx. for n = ', n, ': ', result)
+        # print('Log Stirling approx. for n =', n, ':', result)
         return result
 
 
     def comb_ln(self, n, k):
         result = self.stirling_ln(n) - self.stirling_ln(k) - self.stirling_ln(n-k)
-        # print('Log combination approx. for (n, k) = ', (n,k), ': ', result)
+        # print('Log combination approx. for (n, k) =', (n,k), ':', result)
         return result
 
 
@@ -4151,7 +4170,7 @@ class StepParse(nx.DiGraph):
             chop = 1000
 
         log_  = np.log(chop) + np.log(rank/chop)
-        print('log_  = ', log_)
+        print('log_ =', log_)
 
         if log_ > max_ln:
             print('Rank outside nCk bounds: returning None')
@@ -4223,7 +4242,7 @@ class StepParse(nx.DiGraph):
             self.renderer.DisplayShape(shape)
 
         try:
-            # print('Fitting and dumping image ', img_name)
+            # print('Fitting and dumping image', img_name)
             ''' Create directory if it doesn't already exist '''
             img_path = os.path.split(img_file)[0]
             if not os.path.isdir(img_path):
@@ -4234,7 +4253,7 @@ class StepParse(nx.DiGraph):
             self.renderer.View.Dump(img_file)
             ''' Check if rendered and dumped, i.e. if image file exists '''
             if os.path.exists(img_file):
-                # print('Image saved to ', img_file)
+                # print('Image saved to', img_file)
                 image_saved_ok = True
             else:
                 print('Could not save image')
@@ -4282,7 +4301,7 @@ class StepParse(nx.DiGraph):
 
             ''' Skip rest if shape already grabbed or is sub-shape '''
             if (shape in shapes):
-                print('Duplicate shape found; node ', node, shape)
+                print('Duplicate shape found; node', node, shape)
                 continue
             # if not subshapes and d['is_subshape']:
             #     # print('Sub-shape found; ignoring')
@@ -4320,7 +4339,7 @@ class StepParse(nx.DiGraph):
             if os.path.isfile(step_file):
                 print('Part model already exists; not saving')
             else:
-                print('Saving STEP file for part: ', v)
+                print('Saving STEP file for part:', v)
                 DataExchange.write_step_file(k, step_file)
 
             img_file = os.path.join(folder, v + '.jpg')
@@ -4328,5 +4347,5 @@ class StepParse(nx.DiGraph):
                 print(img_file)
                 print('Part image file already exists; not saving')
             else:
-                print('Saving image for part: ', v)
+                print('Saving image for part:', v)
                 self.quick_render(k, img_file = img_file)
